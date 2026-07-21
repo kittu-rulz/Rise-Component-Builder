@@ -33,11 +33,11 @@
       <div class="toolbar-actions">
         <button id="btn-new" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>New Component</span>
+          <span>New Project</span>
         </button>
         <button id="btn-open" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          <span>Open</span>
+          <span>Open Project</span>
         </button>
         <button id="btn-save" class="btn btn-secondary">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
@@ -51,7 +51,10 @@
       </div>
 
       <div class="toolbar-utilities">
-        <button id="btn-theme" class="utility-btn" title="Toggle Theme">
+        <button id="btn-theme-manager" class="utility-btn" title="Component Theme Manager" aria-label="Open component theme manager">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="10.5" r="2.5"></circle><circle cx="8.5" cy="7.5" r="2.5"></circle><circle cx="6.5" cy="12.5" r="2.5"></circle><path d="M12 22a10 10 0 1 1 10-10c0 2.2-1.8 4-4 4h-1.8c-1.2 0-2.2 1-2.2 2.2 0 .5.2 1 .5 1.4.7 1-.1 2.4-1.3 2.4H12z"></path></svg>
+        </button>
+        <button id="btn-theme" class="utility-btn" title="Toggle Builder Light/Dark Mode" aria-label="Toggle builder light or dark interface mode">
           <!-- Light Mode Icon -->
           <svg class="theme-icon-light" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
           <!-- Dark Mode Icon -->
@@ -253,12 +256,16 @@
 
               <!-- Tab Content: Design & Style -->
               <div class="tab-pane" id="tab-style">
+                <div class="theme-context-bar">
+                  <div><span>Exported component theme</span><strong id="active-component-theme-name">Clean Light</strong></div>
+                  <button type="button" id="btn-open-theme-manager-style" class="btn btn-text btn-small">Manage Themes</button>
+                </div>
                 <div class="form-group-card">
                   <div class="group-title">Visual Branding</div>
                   
                   <div class="grid-2-col">
                     <div class="input-wrapper">
-                      <label for="input-color-primary">Primary Theme Color</label>
+                      <label for="input-color-primary">Primary Theme Color <span id="override-primary-status" class="theme-source-badge">Theme value</span></label>
                       <div class="color-picker-input">
                         <input type="color" id="input-color-primary" value="#2563EB">
                         <input type="text" id="input-color-primary-text" value="#2563EB">
@@ -266,7 +273,7 @@
                     </div>
 
                     <div class="input-wrapper">
-                      <label for="input-color-accent">Accent Highlight</label>
+                      <label for="input-color-accent">Accent Highlight <span id="override-accent-status" class="theme-source-badge">Theme value</span></label>
                       <div class="color-picker-input">
                         <input type="color" id="input-color-accent" value="#F59E0B">
                         <input type="text" id="input-color-accent-text" value="#F59E0B">
@@ -276,7 +283,7 @@
 
                   <div class="grid-2-col">
                     <div class="input-wrapper">
-                      <label for="input-color-bg">Card Background</label>
+                      <label for="input-color-bg">Card Background <span id="override-background-status" class="theme-source-badge">Theme value</span></label>
                       <div class="color-picker-input">
                         <input type="color" id="input-color-bg" value="#FFFFFF">
                         <input type="text" id="input-color-bg-text" value="#FFFFFF">
@@ -284,7 +291,7 @@
                     </div>
 
                     <div class="input-wrapper">
-                      <label for="input-color-text">Text Color</label>
+                      <label for="input-color-text">Text Color <span id="override-text-status" class="theme-source-badge">Theme value</span></label>
                       <div class="color-picker-input">
                         <input type="color" id="input-color-text" value="#1F2937">
                         <input type="text" id="input-color-text-text" value="#1F2937">
@@ -295,14 +302,25 @@
 
                 <div class="form-group-card">
                   <div class="group-title">Layout & Borders</div>
+
+                  <div class="input-wrapper">
+                    <label for="select-component-font">Component Font <span id="override-fontFamily-status" class="theme-source-badge">Theme value</span></label>
+                    <select id="select-component-font">
+                      <option value="Merriweather">Merriweather</option>
+                      <option value="Lato">Lato</option>
+                      <option value="Roboto">Roboto</option>
+                      <option value="Montserrat">Montserrat</option>
+                      <option value="Open Sans">Open Sans</option>
+                    </select>
+                  </div>
                   
                   <div class="input-wrapper">
-                    <label for="input-border-radius">Border Roundness (<span id="radius-val">12px</span>)</label>
-                    <input type="range" id="input-border-radius" min="0" max="24" value="12" step="2">
+                    <label for="input-border-radius">Border Roundness (<span id="radius-val">12px</span>) <span id="override-borderRadius-status" class="theme-source-badge">Theme value</span></label>
+                    <input type="range" id="input-border-radius" min="0" max="32" value="12" step="2">
                   </div>
 
                   <div class="input-wrapper">
-                    <label for="select-shadow">Shadow Depth</label>
+                    <label for="select-shadow">Shadow Depth <span id="override-shadow-status" class="theme-source-badge">Theme value</span></label>
                     <select id="select-shadow">
                       <option value="none">Flat (No Shadow)</option>
                       <option value="soft" selected>Soft (Canva Style)</option>
@@ -315,6 +333,8 @@
                     <input type="checkbox" id="input-border-enable" checked>
                     <label for="input-border-enable">Show Border Outline</label>
                   </div>
+
+                  <button type="button" id="btn-reset-component-overrides" class="btn btn-secondary btn-small">Reset Overrides</button>
                 </div>
               </div>
 
@@ -411,7 +431,7 @@
               </div>
               
               <!-- Component Output Frame (Simulated inside an iframe to represent isolated CSS) -->
-              <iframe id="live-preview-iframe" title="Component Live Preview" src="about:blank"></iframe>
+              <iframe id="live-preview-iframe" title="Component Live Preview" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>
             </div>
           </div>
         </div>
@@ -424,7 +444,7 @@
 
   <!-- Modal: Open Component -->
   <div id="modal-open" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
+    <div class="modal-card modal-large">
       <div class="modal-header">
         <h3>Open Component</h3>
         <button class="modal-close-btn">&times;</button>
@@ -432,31 +452,11 @@
       <div class="modal-body">
         <p class="modal-desc">Select a saved component project from your local workspace storage.</p>
         
-        <div class="saved-components-list">
-          <div class="saved-component-card active-card">
-            <div class="sc-details">
-              <div class="sc-name">Core Values Accordion</div>
-              <div class="sc-meta">Modified: Today at 2:15 PM • Interactive</div>
-            </div>
-            <button class="btn btn-text btn-small">Load</button>
-          </div>
-          <div class="saved-component-card">
-            <div class="sc-details">
-              <div class="sc-name">Product Rollout Timeline</div>
-              <div class="sc-meta">Modified: Yesterday • Timelines</div>
-            </div>
-            <button class="btn btn-text btn-small">Load</button>
-          </div>
-          <div class="saved-component-card">
-            <div class="sc-details">
-              <div class="sc-name">Customer Onboarding Tabs</div>
-              <div class="sc-meta">Modified: June 28, 2026 • Interactive</div>
-            </div>
-            <button class="btn btn-text btn-small">Load</button>
-          </div>
-        </div>
+        <div id="saved-components-list" class="saved-components-list"></div>
       </div>
       <div class="modal-footer">
+        <input id="import-project-file" type="file" accept="application/json,.json" hidden>
+        <button id="btn-import-project" class="btn btn-secondary">Import JSON</button>
         <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
       </div>
     </div>
@@ -466,33 +466,21 @@
   <div id="modal-save" class="modal-overlay" style="display: none;">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>Save Component</h3>
+        <h3 id="save-modal-title">Save Project</h3>
         <button class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Save your customization settings for this component to local storage.</p>
+        <p class="modal-desc">Save this component project and its current customization settings locally.</p>
         
         <div class="input-wrapper">
-          <label for="save-component-name">Component Name</label>
-          <input type="text" id="save-component-name" value="Core Values Accordion" placeholder="Enter component name...">
-        </div>
-        
-        <div class="input-wrapper">
-          <label for="save-component-category">Category</label>
-          <select id="save-component-category">
-            <option value="interactive">Interactive</option>
-            <option value="navigation">Navigation</option>
-            <option value="knowledge">Knowledge Checks</option>
-            <option value="timelines">Timelines</option>
-            <option value="process">Process Flows</option>
-            <option value="cards">Cards & Layouts</option>
-            <option value="media">Media Blocks</option>
-          </select>
+          <label for="save-component-name">Project Name</label>
+          <input type="text" id="save-component-name" value="" placeholder="Enter component name...">
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
-        <button id="btn-confirm-save" class="btn btn-primary">Save to Workspace</button>
+        <button id="btn-confirm-save-as" class="btn btn-secondary">Save As</button>
+        <button id="btn-confirm-save" class="btn btn-primary">Save</button>
       </div>
     </div>
   </div>
@@ -509,6 +497,8 @@
           <button class="export-tab active" data-export-type="iframe">Option A: Rise Embed Code (Recommended)</button>
           <button class="export-tab" data-export-type="code">Option B: HTML Block Fragment</button>
         </div>
+
+        <div id="export-media-warning" class="instructions-alert export-media-warning" role="status" hidden></div>
         
         <!-- Tab Content: Iframe Link -->
         <div class="export-pane active" id="pane-export-iframe">
@@ -561,10 +551,50 @@
             </button>
             <button id="btn-download-zip" class="btn btn-primary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span>Download SCORM Package</span>
+              <span>Prepare ZIP Asset Manifest</span>
             </button>
           </div>
+          <details class="export-manifest-details">
+            <summary>Export asset manifest</summary>
+            <div class="code-export-box"><pre><code id="export-asset-manifest">[]</code></pre></div>
+          </details>
         </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-cancel-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Component Theme Manager -->
+  <div id="modal-theme-manager" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-theme-manager">
+      <div class="modal-header">
+        <div>
+          <h3>Component Theme Manager</h3>
+          <p class="theme-manager-subtitle">Controls generated and exported components, independently of the builder interface mode.</p>
+        </div>
+        <button class="modal-close-btn" aria-label="Close Theme Manager">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="theme-manager-toolbar">
+          <button id="btn-save-current-theme" class="btn btn-primary btn-small" type="button">Save Current Styling</button>
+          <button id="btn-import-theme" class="btn btn-secondary btn-small" type="button">Import JSON</button>
+          <button id="btn-export-theme" class="btn btn-secondary btn-small" type="button">Export Active</button>
+          <button id="btn-reset-active-theme" class="btn btn-secondary btn-small" type="button">Reset Theme</button>
+          <input id="import-theme-file" type="file" accept="application/json,.json" hidden>
+        </div>
+        <div class="theme-manager-current" aria-live="polite">
+          <span>Active component theme</span>
+          <strong id="theme-manager-active-name">Clean Light</strong>
+          <span id="theme-manager-default-label"></span>
+        </div>
+        <div id="theme-cards" class="theme-card-grid"></div>
+        <section class="theme-contrast-section" aria-labelledby="theme-contrast-heading">
+          <div class="group-title" id="theme-contrast-heading">WCAG 2.2 AA Contrast Review</div>
+          <p class="modal-desc">Warnings do not change your selected colors. Suggested alternatives are provided for review.</p>
+          <div id="theme-contrast-report" class="theme-contrast-report"></div>
+        </section>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel-btn">Close</button>
@@ -620,6 +650,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
