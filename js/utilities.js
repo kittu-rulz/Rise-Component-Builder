@@ -13,6 +13,53 @@ export function slugify(value, fallback = 'rise-component') {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || fallback;
 }
 
+export async function copyTextToClipboard(value, options = {}) {
+  const text = String(value ?? '');
+  if (!text) throw new Error('There is no code to copy.');
+
+  const navigatorObject = options.navigatorObject ?? globalThis.navigator;
+  const documentObject = options.documentObject ?? globalThis.document;
+
+  if (navigatorObject?.clipboard?.writeText) {
+    try {
+      await navigatorObject.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Clipboard API access can be denied outside HTTPS/localhost. Keep the
+      // current click gesture active and try the broadly supported fallback.
+    }
+  }
+
+  if (!documentObject?.body || typeof documentObject.execCommand !== 'function') {
+    throw new Error('Clipboard access is unavailable in this browser.');
+  }
+
+  const activeElement = documentObject.activeElement;
+  const textarea = documentObject.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.setAttribute('aria-hidden', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.left = '-9999px';
+  textarea.style.opacity = '0';
+  documentObject.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  let copied = false;
+  try {
+    copied = documentObject.execCommand('copy');
+  } finally {
+    textarea.remove();
+    activeElement?.focus?.();
+  }
+
+  if (!copied) throw new Error('The browser could not copy the code. Select the code and copy it manually.');
+  return true;
+}
+
 export function generateHtmlFragment(fullHtml) {
   const styleMatch = fullHtml.match(/<style>([\s\S]*?)<\/style>/i);
   const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
@@ -188,18 +235,22 @@ export function sanitizePreviewConfig(config, componentId) {
     if (componentId === 'multiple-choice') safeItem.label = sanitizeRichText(item.label);
     if (componentId === 'fill-blank') safeItem.title = sanitizeRichText(item.title);
     if (item.image !== undefined) safeItem.image = sanitizeURL(item.image, { allowDataImage: true, allowBlob: true, allowRelative: true });
+    if (item.iconImage !== undefined) safeItem.iconImage = sanitizeURL(item.iconImage, { allowDataImage: true, allowBlob: true, allowRelative: true });
     if (item.posterImage !== undefined) safeItem.posterImage = sanitizeURL(item.posterImage, { allowDataImage: true, allowBlob: true, allowRelative: true });
     if (item.actionUrl !== undefined) safeItem.actionUrl = sanitizeURL(item.actionUrl);
     if (item.captionsUrl !== undefined) safeItem.captionsUrl = sanitizeURL(item.captionsUrl, { allowBlob: true, allowRelative: true });
     if (item.transcript !== undefined) safeItem.transcript = sanitizeRichText(item.transcript);
     if (item.audioDescription !== undefined) safeItem.audioDescription = sanitizeRichText(item.audioDescription);
     if (item.altText !== undefined) safeItem.altText = String(item.altText || '');
+    if (item.iconAltText !== undefined) safeItem.iconAltText = String(item.iconAltText || '');
     if (item.posterAltText !== undefined) safeItem.posterAltText = String(item.posterAltText || '');
     if (item.caption !== undefined) safeItem.caption = String(item.caption || '');
     if (item.decorative !== undefined) safeItem.decorative = Boolean(item.decorative);
+    if (item.iconDecorative !== undefined) safeItem.iconDecorative = Boolean(item.iconDecorative);
     if (item.posterDecorative !== undefined) safeItem.posterDecorative = Boolean(item.posterDecorative);
     if (item.imageCrop !== undefined) safeItem.imageCrop = item.imageCrop === 'square' ? 'square' : 'circle';
     if (item.imageFit !== undefined) safeItem.imageFit = item.imageFit === 'contain' ? 'contain' : 'cover';
+    if (item.iconFit !== undefined) safeItem.iconFit = item.iconFit === 'cover' ? 'cover' : 'contain';
     if (item.x !== undefined) safeItem.x = String(sanitizeCSSNumber(item.x, { minimum: 0, maximum: 100, fallback: 50 }));
     if (item.y !== undefined) safeItem.y = String(sanitizeCSSNumber(item.y, { minimum: 0, maximum: 100, fallback: 50 }));
     return safeItem;

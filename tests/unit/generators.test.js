@@ -69,3 +69,30 @@ describe.each(generators)('$name generator', component => {
     expect(html.toLowerCase()).not.toContain(url.toLowerCase());
   });
 });
+
+describe('custom flip-card artwork', () => {
+  test('renders safe meaningful or decorative images and keeps the built-in fallback', () => {
+    const custom = flipCards.generateHTML({
+      ...flipCards.defaultConfig,
+      items: [
+        { title: 'Front', content: 'Front content', iconImage: 'https://example.com/icon.png', iconAltText: 'Learning objective icon', iconDecorative: false, iconFit: 'contain' },
+        { title: 'Back', content: 'Back content', iconImage: 'https://example.com/texture.png', iconDecorative: true, iconFit: 'cover' },
+        { title: 'Fallback', content: 'Uses default icon' },
+        { title: 'Fallback back', content: 'Back content' }
+      ]
+    });
+    const document = new JSDOM(custom).window.document;
+    expect(document.querySelector('img[alt="Learning objective icon"]')).not.toBeNull();
+    expect(document.querySelector('img[src="https://example.com/texture.png"][aria-hidden="true"]')).not.toBeNull();
+    expect(document.querySelectorAll('.flip-card').item(1).querySelector('.flip-card-front svg')).not.toBeNull();
+  });
+
+  test('rejects unsafe custom icon URLs', () => {
+    const html = flipCards.generateHTML({
+      ...flipCards.defaultConfig,
+      items: [{ title: 'Front', content: 'Content', iconImage: 'javascript:alert(1)' }, { title: 'Back', content: 'Content' }]
+    });
+    expect(html).not.toContain('javascript:');
+    expect(new JSDOM(html).window.document.querySelector('.flip-card-front svg')).not.toBeNull();
+  });
+});

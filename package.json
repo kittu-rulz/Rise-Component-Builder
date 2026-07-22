@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Vanilla JavaScript component authoring tool with automated unit and browser testing.",
   "scripts": {
+    "dev": "http-server . -p 8080 -c-1",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:watch": "vitest",
@@ -16,6 +17,7 @@
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.61.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "http-server": "^14.1.1",
     "jsdom": "^29.1.1",
     "vitest": "^4.1.10"
   }

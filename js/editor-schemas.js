@@ -5,6 +5,18 @@ const contentFields = [
   field('content', 'Item Content', 'richtext', { required: true, default: 'Add content here.' })
 ];
 
+const visualIconFields = [
+  field('iconImage', 'Custom Icon or Image (Optional)', 'image', { required: false, default: '', preferredDimensions: '256 × 256 px (square)' }),
+  field('iconAltText', 'Icon or Image Alternative Text', 'textarea', {
+    required: false, default: '', warningWhen: 'iconImage', warningUnless: 'iconDecorative',
+    warningMessage: 'Add alternative text or mark the custom icon or image decorative.'
+  }),
+  field('iconDecorative', 'Custom Icon or Image Is Decorative', 'checkbox', { default: false }),
+  field('iconFit', 'Custom Icon or Image Fit', 'select', {
+    default: 'contain', options: [{ value: 'contain', label: 'Contain' }, { value: 'cover', label: 'Cover' }]
+  })
+];
+
 export const editorSchemas = {
   accordion: {
     itemLabel: 'Accordion Section', minItems: 1,
@@ -16,12 +28,16 @@ export const editorSchemas = {
   },
   'flip-cards': {
     itemLabel: 'Card Face', minItems: 2,
-    itemFields: [field('title', 'Face Title', 'text', { required: true, default: 'Card Face' }), field('content', 'Face Content', 'richtext', { required: true, default: 'Add card content.' })]
+    itemFields: [
+      field('title', 'Face Title', 'text', { required: true, default: 'Card Face' }),
+      field('content', 'Face Content', 'richtext', { required: true, default: 'Add card content.' }),
+      ...visualIconFields
+    ]
   },
   hotspots: {
     itemLabel: 'Hotspot', minItems: 1, componentLabel: 'Hotspot background',
     componentFields: [
-      field('backgroundImage', 'Background Image', 'image', { required: false, default: '' }),
+      field('backgroundImage', 'Background Image', 'image', { required: false, default: '', preferredDimensions: '1600 × 900 px (16:9)' }),
       field('backgroundAltText', 'Background Alternative Text', 'textarea', { required: false, default: '', warningWhen: 'backgroundImage', warningUnless: 'backgroundDecorative', warningMessage: 'Add alternative text or mark the background decorative.' }),
       field('backgroundDecorative', 'Background Image Is Decorative', 'checkbox', { default: false }),
       field('backgroundFit', 'Background Image Fit', 'select', { default: 'contain', options: [{ value: 'contain', label: 'Contain' }, { value: 'cover', label: 'Cover' }] }),
@@ -81,7 +97,7 @@ export const editorSchemas = {
     itemFields: [
       field('title', 'Name', 'text', { required: true, default: 'New Profile' }),
       field('content', 'Role and Biography', 'richtext', { required: true, default: 'Add role and biography.' }),
-      field('image', 'Profile Image', 'image', { required: false, default: '' }),
+      field('image', 'Profile Image', 'image', { required: false, default: '', preferredDimensions: '800 × 800 px (square)' }),
       field('altText', 'Profile Image Alternative Text', 'textarea', { default: '', warningWhen: 'image', warningUnless: 'decorative', warningMessage: 'Add alternative text or mark the profile image decorative.' }),
       field('decorative', 'Profile Image Is Decorative', 'checkbox', { default: false }),
       field('imageCrop', 'Profile Image Presentation', 'select', { default: 'circle', options: [{ value: 'circle', label: 'Circular' }, { value: 'square', label: 'Square' }] })
@@ -89,7 +105,7 @@ export const editorSchemas = {
   },
   'info-grid': {
     itemLabel: 'Information Card', minItems: 1,
-    itemFields: [...contentFields, field('accentColor', 'Card Accent Color', 'color', { required: false, default: '#2563EB' })]
+    itemFields: [...contentFields, ...visualIconFields, field('accentColor', 'Card Accent Color', 'color', { required: false, default: '#2563EB' })]
   },
   'pricing-comparison': {
     itemLabel: 'Comparison Option', minItems: 2,
@@ -97,14 +113,19 @@ export const editorSchemas = {
   },
   'audio-player': {
     itemLabel: 'Audio Track', minItems: 1,
-    itemFields: [field('title', 'Audio Title', 'text', { required: true, default: 'New Audio Track' }), field('content', 'Audio Source', 'audio', { required: true, default: '' }), field('transcript', 'Transcript', 'richtext', { required: false, default: '', warningWhen: 'content', warningUnlessAny: ['transcript'], warningMessage: 'Instructional audio should include a transcript.' })]
+    itemFields: [
+      field('title', 'Audio Title', 'text', { required: true, default: 'New Audio Track' }),
+      field('content', 'Audio Source', 'audio', { required: true, default: '' }),
+      ...visualIconFields,
+      field('transcript', 'Transcript', 'richtext', { required: false, default: '', warningWhen: 'content', warningUnlessAny: ['transcript'], warningMessage: 'Instructional audio should include a transcript.' })
+    ]
   },
   'video-frame': {
     itemLabel: 'Video', minItems: 1,
     itemFields: [
       field('title', 'Accessible Video Title', 'text', { required: true, default: 'New Video' }),
       field('content', 'Video Source', 'video', { required: true, default: '' }),
-      field('posterImage', 'Poster Image', 'image', { required: false, default: '' }),
+      field('posterImage', 'Poster Image', 'image', { required: false, default: '', preferredDimensions: '1280 × 720 px (16:9)' }),
       field('posterAltText', 'Poster Alternative Text', 'textarea', { default: '', warningWhen: 'posterImage', warningUnless: 'posterDecorative', warningMessage: 'Add poster alternative text or mark it decorative.' }),
       field('posterDecorative', 'Poster Is Decorative', 'checkbox', { default: false }),
       field('captionsUrl', 'Captions (WebVTT)', 'url', { required: false, default: '', uploadKind: 'captions', warningWhen: 'content', warningUnlessAny: ['captionsUrl', 'transcript'], warningMessage: 'Provide captions or a transcript for this video.' }),
@@ -115,7 +136,7 @@ export const editorSchemas = {
   'image-gallery': {
     itemLabel: 'Gallery Image', minItems: 1,
     itemFields: [
-      field('content', 'Image Source', 'image', { required: true, default: '', multiple: true }),
+      field('content', 'Image Source', 'image', { required: true, default: '', multiple: true, preferredDimensions: '1600 × 1200 px (4:3)' }),
       field('title', 'Image Title', 'text', { required: true, default: 'New Image' }),
       field('caption', 'Image Caption', 'textarea', { required: false, default: '' }),
       field('altText', 'Alternative Text', 'textarea', { required: false, default: '', warningWhen: 'content', warningUnless: 'decorative', warningMessage: 'Add alternative text or mark this image decorative.' }),

@@ -58,6 +58,17 @@ export function createMediaUploadControl({
   externalButton.textContent = 'Reset to external URL';
   urlRow.append(urlInput, externalButton);
 
+  const guidance = document.createElement('p');
+  guidance.className = 'media-upload-guidance';
+  guidance.id = `${controlId}-guidance`;
+  if (kind === 'image') {
+    const preferred = field.preferredDimensions || '1200 × 900 px or larger';
+    guidance.textContent = `Supported formats: JPG, JPEG, PNG, WebP, SVG, GIF. Preferred dimensions: ${preferred}. Maximum file size: 10 MB; SVG: 2 MB.`;
+    urlInput.dataset.guidanceId = guidance.id;
+  } else {
+    guidance.hidden = true;
+  }
+
   const dropZone = document.createElement('div');
   dropZone.className = 'media-drop-zone';
   dropZone.tabIndex = 0;
@@ -188,7 +199,7 @@ export function createMediaUploadControl({
     status.textContent = 'External URL mode enabled.';
   });
 
-  root.append(urlRow, dropZone, details, error, status);
+  root.append(urlRow, guidance, dropZone, details, error, status);
   renderValue();
   return { element: root, validationControl: urlInput, processFiles, getValue: () => currentValue };
 }

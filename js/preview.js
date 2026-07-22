@@ -30,6 +30,13 @@ function readableText(preferred, background) {
   return contrastRatio('#000000', background) >= contrastRatio('#FFFFFF', background) ? '#000000' : '#FFFFFF';
 }
 
+function renderCustomItemArtwork(item, fallbackMarkup = '') {
+  if (!item?.iconImage) return fallbackMarkup;
+  const decorative = item.iconDecorative !== false;
+  const fit = item.iconFit === 'cover' ? 'cover' : 'contain';
+  return `<img class="custom-item-icon" src="${escapeAttribute(item.iconImage)}" alt="${decorative ? '' : escapeAttribute(item.iconAltText || '')}" ${decorative ? 'aria-hidden="true"' : ''} style="object-fit:${fit};">`;
+}
+
 export function writePreview(iframe, html) {
   if (!iframe) return;
   iframe.srcdoc = html;
@@ -284,7 +291,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
           ${c.items.map((item, idx) => `
             <div class="info-grid-item">
               <div class="info-grid-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>
+                ${renderCustomItemArtwork(item, '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>')}
               </div>
               <h4>${escapeHTML(item.title || 'Feature Key')}</h4>
               <p>${item.content || 'Description layout parameters.'}</p>
@@ -322,7 +329,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
         <div class="audio-player-block">
           <div class="audio-info">
             <div class="audio-art">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+              ${renderCustomItemArtwork(c.items[0], '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>')}
             </div>
             <div class="audio-text-labels">
               <h5>${escapeHTML(c.items[0]?.title || 'Instructional Audio Segment')}</h5>
@@ -524,10 +531,12 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       color: var(--accent);
       text-transform: uppercase;
       margin-bottom: 4px;
+      white-space: pre-line;
     }
     
     .block-headline {
       font-family: var(--heading-font-family);
+      white-space: pre-line;
       font-size: 22px;
       font-weight: 600;
       color: var(--text-main);
@@ -794,6 +803,12 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
     .card-icon-badge {
       color: var(--accent);
       margin-bottom: 4px;
+    }
+
+    .card-icon-badge .custom-item-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: calc(var(--border-radius) / 2);
     }
     
     .flip-card-front h3, .flip-card-back h3 {
@@ -1650,6 +1665,11 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       color: var(--accent);
       margin-bottom: 12px;
     }
+    .info-grid-icon .custom-item-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: calc(var(--border-radius) / 2);
+    }
     .info-grid-item h4 {
       font-size: 14px;
       font-weight: 600;
@@ -1771,7 +1791,9 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
+    .audio-art .custom-item-icon { width: 100%; height: 100%; }
     .audio-text-labels h5 {
       font-size: 12px;
       font-weight: 600;

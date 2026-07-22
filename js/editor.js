@@ -144,7 +144,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       wrapper.classList.toggle('has-error', errors.length > 0);
       wrapper.classList.toggle('has-warning', Boolean(warningText));
       control.setAttribute('aria-invalid', String(errors.length > 0));
-      control.setAttribute('aria-describedby', [error.id, warningText ? warning.id : ''].filter(Boolean).join(' '));
+      control.setAttribute('aria-describedby', [control.dataset.guidanceId, error.id, warningText ? warning.id : ''].filter(Boolean).join(' '));
     };
     const updateValue = (value, control) => {
       if (field.type === 'radio' && field.groupAcrossItems) items.forEach(entry => { entry[field.id] = false; });

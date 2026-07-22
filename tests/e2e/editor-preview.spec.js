@@ -9,8 +9,13 @@ async function openAccordion(page) {
 test.beforeEach(async ({ page }) => openAccordion(page));
 
 test('content changes update the live preview', async ({ page }) => {
-  await page.locator('#input-block-headline').fill('Updated live preview headline');
-  await expect(page.frameLocator('#live-preview-iframe').locator('#block-headline')).toHaveText('Updated live preview headline');
+  await page.locator('#input-block-title').fill('LEARNING\nACTIVITY');
+  await page.locator('#input-block-headline').fill('Updated live preview\nheadline');
+  const frame = page.frameLocator('#live-preview-iframe');
+  await expect(frame.locator('.block-label')).toHaveText('LEARNING\nACTIVITY');
+  await expect(frame.locator('#block-headline')).toHaveText('Updated live preview\nheadline');
+  await expect(frame.locator('.block-label')).toHaveCSS('white-space', 'pre-line');
+  await expect(frame.locator('#block-headline')).toHaveCSS('white-space', 'pre-line');
 });
 
 test('items can be added, duplicated, deleted, moved, and collapsed', async ({ page }) => {
@@ -76,4 +81,25 @@ test('pop-out preview opens where browser permissions permit', async ({ page }) 
   const popup = await popupPromise;
   await expect(popup.locator('.accordion-group')).toBeVisible();
   await popup.close();
+});
+
+test('flip-card custom artwork uploads per face and removal restores the built-in icon', async ({ page }) => {
+  await page.locator('#btn-back-to-catalog').click();
+  await page.locator('.component-select-card').filter({ hasText: '3D Flip Cards' }).click();
+  const iconField = page.locator('#schema-0-iconImage').locator('xpath=ancestor::div[contains(@class,"schema-field")]');
+  await expect(iconField.locator('.media-upload-guidance')).toHaveText(
+    'Supported formats: JPG, JPEG, PNG, WebP, SVG, GIF. Preferred dimensions: 256 × 256 px (square). Maximum file size: 10 MB; SVG: 2 MB.'
+  );
+  await expect(page.locator('#schema-0-iconImage')).toHaveAttribute('aria-describedby', /schema-0-iconImage-guidance/);
+  await iconField.locator('input[type="file"]').setInputFiles({
+    name: 'custom-icon.png', mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64')
+  });
+  await page.locator('#schema-0-iconAltText').fill('Custom learning icon');
+  const front = page.frameLocator('#live-preview-iframe').locator('.flip-card-front').first();
+  await expect(front.locator('img.custom-item-icon')).toHaveAttribute('alt', 'Custom learning icon');
+  await expect(iconField.locator('.media-file-metadata')).toContainText('custom-icon.png');
+  await iconField.getByRole('button', { name: 'Remove file' }).click();
+  await expect(front.locator('img.custom-item-icon')).toHaveCount(0);
+  await expect(front.locator('.card-icon-badge svg')).toBeVisible();
 });

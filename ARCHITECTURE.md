@@ -81,6 +81,10 @@ Five component implementations are registered from `components/*.js`. Each expos
 
 Image, audio, video, and caption-capable fields delegate to `js/media-upload.js`. The control supports external URLs, browsing, drag/drop, preview, metadata, replacement, removal, and multiple selection when enabled by schema. Files are validated and stored before a JSON-safe media reference is written to component configuration. Component-level schema fields are used for hotspot background media; item-level fields cover profiles, gallery items, audio, and video.
 
+Optional illustrative artwork uses the same image control and IndexedDB reference lifecycle. Flip Card faces, Information Grid cards, and Audio Player tracks expose `iconImage`, `iconAltText`, `iconDecorative`, and `iconFit`. Empty or removed artwork values render the existing built-in SVG, so projects retain their previous appearance by default. Functional control symbols such as accordion expand indicators and media play/pause controls are intentionally not author-replaceable.
+
+Every image schema supplies `preferredDimensions`. The reusable upload control displays that recommendation together with the accepted JPG/JPEG, PNG, WebP, SVG, and GIF formats and enforced file-size limits. This guidance is referenced by `aria-describedby`; dimensions are advisory and do not reject otherwise valid images.
+
 ## Live-preview generation
 
 `app.js` calls `generateIframeContent()` in `js/preview.js`, passing the application state, modular component registry, and color helper. The preview module:

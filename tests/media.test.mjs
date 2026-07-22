@@ -169,6 +169,22 @@ test('missing alt text warns while decorative images pass', () => {
   assert.deepEqual(decorative, []);
 });
 
+test('custom item artwork requires alt text unless explicitly decorative', () => {
+  const missing = validateMediaAccessibility(baseConfig([
+    { title: 'Card', content: 'Content', iconImage: 'https://example.com/icon.png', iconAltText: '', iconDecorative: false }
+  ]), 'flip-cards');
+  assert.equal(missing.length, 1);
+  assert.match(missing[0], /alternative text/i);
+  const meaningful = validateMediaAccessibility(baseConfig([
+    { title: 'Card', content: 'Content', iconImage: 'https://example.com/icon.png', iconAltText: 'Learning icon', iconDecorative: false }
+  ]), 'flip-cards');
+  const decorative = validateMediaAccessibility(baseConfig([
+    { title: 'Card', content: 'Content', iconImage: 'https://example.com/icon.png', iconAltText: '', iconDecorative: true }
+  ]), 'info-grid');
+  assert.deepEqual(meaningful, []);
+  assert.deepEqual(decorative, []);
+});
+
 test('audio transcript and video captions-or-transcript warnings are non-blocking', () => {
   assert.equal(validateMediaAccessibility(baseConfig([{ content: 'https://example.com/audio.mp3', transcript: '' }]), 'audio-player').length, 1);
   assert.equal(validateMediaAccessibility(baseConfig([{ content: 'https://example.com/video.mp4', captionsUrl: '', transcript: '' }]), 'video-frame').length, 1);

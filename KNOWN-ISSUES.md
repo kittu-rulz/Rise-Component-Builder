@@ -34,6 +34,7 @@ Only confirmed or directly observable implementation limitations are listed here
 - Removing or replacing media revokes unused runtime object URLs, but orphaned IndexedDB records are not yet garbage-collected automatically because saved projects may still reference them.
 - Duration metadata depends on the browser successfully reading audio/video metadata.
 - SVG sanitization intentionally rejects the complete file when it contains unsafe elements, handlers, script URLs, embedded HTML, or external references; it does not attempt a lossy repair.
+- Custom item artwork is currently available for Flip Cards, Information Grid, and Audio Player. Functional interaction symbols—including accordion state indicators, quiz controls, and play/pause buttons—remain fixed to protect recognizable controls and their accessibility behavior.
 
 ## Export limitations
 

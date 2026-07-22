@@ -16,6 +16,7 @@ Rise Component Builder is a browser-based internal authoring tool for creating c
 - Searchable component catalog organized by category
 - Favorites stored locally
 - Schema-driven item editor supporting text, textarea, number, range, select, checkbox, radio, color, URL, image, audio, video, and rich-text fields
+- Multiline block labels/categories and headlines with preserved preview/export line breaks
 - Add, duplicate, delete, move, drag-reorder, and collapse item cards
 - Inline field validation
 - Component styling for colors, border radius, borders, shadows, icons, and font selection
@@ -30,6 +31,8 @@ Rise Component Builder is a browser-based internal authoring tool for creating c
 - Toast notifications
 - Defensive HTML, attribute, URL, rich-text, CSS, and inline-script sanitization
 - Reusable browse/drag-and-drop media uploads with previews, replacement, removal, metadata, and external-URL fallback
+- Optional per-item custom icon/image uploads for Flip Card faces, Information Grid cards, and Audio Player artwork, with built-in fallbacks
+- Visible image-upload guidance listing supported formats, limits, and schema-specific preferred dimensions
 - IndexedDB storage for uploaded images, audio, video, posters, and WebVTT captions
 - Media-aware standalone export validation and ZIP asset-manifest preparation
 

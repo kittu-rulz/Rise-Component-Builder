@@ -80,3 +80,21 @@ test('export contains selected content and theme, excludes unsafe executable mar
   await expect(exportedPage.locator('.accordion-group')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('export copy button copies iframe code and shows visible confirmation', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4173' });
+  await openAccordion(page);
+  await page.locator('#btn-export').click();
+
+  const riseInstructions = page.locator('.instructions-alert').filter({ hasText: 'How to use in Articulate Rise' });
+  await expect(riseInstructions).toContainText('Code');
+  await expect(riseInstructions).toContainText('Add code');
+  const expectedCode = await page.locator('#export-iframe-code').textContent();
+  const copyButton = page.locator('#btn-copy-iframe');
+  await copyButton.click();
+
+  await expect(copyButton).toHaveText('Copied!');
+  await expect(copyButton).toHaveClass(/copy-success/);
+  await expect(page.locator('.toast')).toContainText('Code copied to the clipboard.');
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expectedCode);
+});

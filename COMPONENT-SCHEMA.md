@@ -26,14 +26,14 @@ Projects persist a `config` object with shared component configuration plus comp
 }
 ```
 
-Item fields are driven by `js/editor-schemas.js`. A field definition can contain `id`, `label`, `type`, `default`, `required`, `requiredOne`, `groupAcrossItems`, `min`, `max`, `step`, `suffix`, `maxLength`, `pattern`, `patternMessage`, and `options`.
+Item fields are driven by `js/editor-schemas.js`. A field definition can contain `id`, `label`, `type`, `default`, `required`, `requiredOne`, `groupAcrossItems`, `min`, `max`, `step`, `suffix`, `maxLength`, `pattern`, `patternMessage`, `preferredDimensions`, and `options`.
 
 ## Shared configuration properties
 
 | Property | Type | Purpose |
 |---|---:|---|
-| `blockTitle` | string | Eyebrow/category label |
-| `blockHeadline` | string | Main generated heading |
+| `blockTitle` | string | Multiline eyebrow/category label; line breaks render in preview/export |
+| `blockHeadline` | string | Multiline generated heading; line breaks render in preview/export |
 | `blockDesc` | string | Learner instructions or introduction |
 | `items` | array | Ordered component-specific authoring records |
 
@@ -92,7 +92,7 @@ The preview runtime calculates trackable counts per component. Content-reveal co
 |---|---|
 | `accordion` | `title`, `content` |
 | `tab-blocks` | `title`, `content` |
-| `flip-cards` | `title`, `content`; consecutive entries form front/back pairs |
+| `flip-cards` | `title`, `content`, optional `iconImage`, `iconAltText`, `iconDecorative`, `iconFit`; consecutive entries form front/back pairs |
 | `hotspots` | `title`, `content`, `x`, `y` |
 | `button-list` | `title`, `content` (destination URL) |
 | `menu-list` | `title`, `content` |
@@ -104,9 +104,9 @@ The preview runtime calculates trackable counts per component. Content-reveal co
 | `process-flow` | `title`, `content`, `durationMinutes` |
 | `scenario` | `title`, `content`; first item acts as prompt and later items as choices |
 | `profile-cards` | `title`, `content`, `image`, `altText`, `decorative`, `imageCrop` |
-| `info-grid` | `title`, `content`, `accentColor` |
+| `info-grid` | `title`, `content`, optional `iconImage`, `iconAltText`, `iconDecorative`, `iconFit`, `accentColor` |
 | `pricing-comparison` | `title`, `content`, `highlighted`, `actionUrl` |
-| `audio-player` | `title`, `content` (audio source), `contentDuration`, `transcript` |
+| `audio-player` | `title`, `content` (audio source), `contentDuration`, optional `iconImage`, `iconAltText`, `iconDecorative`, `iconFit`, `transcript` |
 | `video-frame` | `title`, `content` (video source), `posterImage`, `posterAltText`, `posterDecorative`, `captionsUrl`, `transcript`, `audioDescription` |
 | `image-gallery` | `content` (image source), `title`, `caption`, `altText`, `decorative`, `imageFit` |
 | `ai-generator` | `title`, `content` (prompt) |
@@ -135,6 +135,10 @@ External media remains a validated HTTP(S) URL string. A local upload is represe
 ```
 
 The corresponding IndexedDB record additionally contains the Blob and editable metadata fields. Object URLs are created only at runtime and are not part of the schema.
+
+For optional custom item artwork, an empty `iconImage` means “use the built-in icon.” Removing an upload therefore restores the default without storing a separate reset flag. Meaningful artwork uses `iconAltText`; decorative artwork sets `iconDecorative: true`. `iconFit` accepts `contain` or `cover`.
+
+All image fields define advisory `preferredDimensions`: 256×256 for custom icons, 800×800 for profile images, 1600×900 for hotspot backgrounds, 1280×720 for video posters, and 1600×1200 for gallery images. The upload control also lists JPG/JPEG, PNG, WebP, SVG, and GIF as supported formats. Existing 10 MB image and 2 MB SVG limits remain enforced independently of the preferred dimensions.
 
 ## Component module contract
 

@@ -111,8 +111,12 @@ test('hotspots, sorting, blanks, timelines, process, and scenario have keyboard 
 });
 
 test('media and gallery output includes alternatives, accessible controls, and dialog behavior', () => {
-  const audio = generate('audio-player', [{ title: 'Audio lesson', content: 'https://example.com/audio.mp3', transcript: '<p>Transcript text</p>' }]);
+  const audio = generate('audio-player', [{
+    title: 'Audio lesson', content: 'https://example.com/audio.mp3', transcript: '<p>Transcript text</p>',
+    iconImage: 'https://example.com/audio-art.png', iconAltText: 'Podcast cover', iconDecorative: false
+  }]);
   assert.match(audio, /aria-label="Play audio" aria-pressed="false"/);
+  assert.match(audio, /class="custom-item-icon"[^>]+alt="Podcast cover"/);
   assert.match(audio, /role="slider" tabindex="0" aria-label="Audio position"/);
   assert.match(audio, /<summary>Transcript<\/summary>/);
   assert.match(audio, /addEventListener\('ended'/);
@@ -126,18 +130,34 @@ test('media and gallery output includes alternatives, accessible controls, and d
   assert.match(gallery, /<button type="button" class="gallery-item-card"/);
   assert.match(gallery, /role="dialog" aria-modal="true"/);
   assert.match(gallery, /galleryReturnFocus/);
+
+  const information = generate('info-grid', [{
+    title: 'Feature', content: 'Description', iconImage: 'https://example.com/feature.png', iconDecorative: true
+  }]);
+  assert.match(information, /class="custom-item-icon"[^>]+aria-hidden="true"/);
 });
 
 test('media alternatives use required alt text or visible non-blocking warnings', () => {
   const transcript = editorSchemas['audio-player'].itemFields.find(field => field.id === 'transcript');
   const captions = editorSchemas['video-frame'].itemFields.find(field => field.id === 'captionsUrl');
   const altText = editorSchemas['image-gallery'].itemFields.find(field => field.id === 'altText');
+  const iconSchemas = ['flip-cards', 'info-grid', 'audio-player'].map(componentId => editorSchemas[componentId].itemFields);
   assert.equal(transcript?.required, false);
   assert.equal(Boolean(transcript?.warningMessage), true);
   assert.equal(captions?.required, false);
   assert.equal(Boolean(captions?.warningMessage), true);
   assert.equal(altText?.required, false);
   assert.equal(Boolean(altText?.warningMessage), true);
+  iconSchemas.forEach(fields => {
+    assert.equal(fields.some(field => field.id === 'iconImage' && field.type === 'image'), true);
+    assert.equal(Boolean(fields.find(field => field.id === 'iconAltText')?.warningMessage), true);
+    assert.equal(fields.find(field => field.id === 'iconDecorative')?.default, false);
+  });
+  Object.values(editorSchemas).flatMap(schema => [
+    ...(schema.componentFields || []), ...(schema.itemFields || [])
+  ]).filter(field => field.type === 'image').forEach(field => {
+    assert.match(field.preferredDimensions, /\d+ × \d+ px/);
+  });
 });
 
 test('every reviewed component produces syntactically valid inline interaction JavaScript', () => {

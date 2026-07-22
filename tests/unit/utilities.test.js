@@ -1,6 +1,6 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import {
-  escapeAttribute, escapeHTML, escapeJavaScriptString, sanitizeRichText, sanitizeURL, slugify, toRgba
+  copyTextToClipboard, escapeAttribute, escapeHTML, escapeJavaScriptString, sanitizeRichText, sanitizeURL, slugify, toRgba
 } from '../../js/utilities.js';
 import { sanitizeAssetFilename } from '../../js/media.js';
 import { createProjectId, validateProject } from '../../js/storage.js';
@@ -8,6 +8,38 @@ import { contrastRatio, validateTheme } from '../../js/themes.js';
 import { invalidProject, invalidTheme, multilingualText, unsafeText, validProject } from '../fixtures/index.js';
 
 describe('context-specific utilities', () => {
+  test('copyTextToClipboard uses the Clipboard API when it is available', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    await expect(copyTextToClipboard('iframe code', {
+      navigatorObject: { clipboard: { writeText } },
+      documentObject: null
+    })).resolves.toBe(true);
+    expect(writeText).toHaveBeenCalledWith('iframe code');
+  });
+
+  test('copyTextToClipboard falls back when Clipboard API access is denied', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+    const execCommand = vi.fn().mockReturnValue(true);
+    const textarea = {
+      value: '', style: {}, setAttribute: vi.fn(), focus: vi.fn(), select: vi.fn(),
+      setSelectionRange: vi.fn(), remove: vi.fn()
+    };
+    const documentObject = {
+      body: { appendChild: vi.fn() },
+      activeElement: { focus: vi.fn() },
+      createElement: vi.fn().mockReturnValue(textarea),
+      execCommand
+    };
+
+    await expect(copyTextToClipboard('<iframe></iframe>', {
+      navigatorObject: { clipboard: { writeText } },
+      documentObject
+    })).resolves.toBe(true);
+    expect(execCommand).toHaveBeenCalledWith('copy');
+    expect(textarea.value).toBe('<iframe></iframe>');
+    expect(textarea.remove).toHaveBeenCalledOnce();
+  });
+
   test('escapeHTML escapes markup delimiters and preserves Unicode', () => {
     expect(escapeHTML(`<div title="'">&${multilingualText}</div>`)).toBe(
       `&lt;div title=&quot;&#39;&quot;&gt;&amp;${multilingualText}&lt;/div&gt;`

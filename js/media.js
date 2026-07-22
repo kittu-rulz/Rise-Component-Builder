@@ -197,9 +197,9 @@ export async function blobToDataURL(blob) {
 export function validateMediaAccessibility(config, componentId) {
   const warnings = [];
   const items = Array.isArray(config?.items) ? config.items : [];
-  const imageWarning = (item, label, sourceKey = 'content') => {
+  const imageWarning = (item, label, sourceKey = 'content', altKey = 'altText', decorativeKey = 'decorative') => {
     if (!item?.[sourceKey]) return;
-    if (!item.decorative && !String(item.altText || '').trim()) warnings.push(`${label} needs alternative text or must be marked decorative.`);
+    if (!item[decorativeKey] && !String(item[altKey] || '').trim()) warnings.push(`${label} needs alternative text or must be marked decorative.`);
   };
 
   if (componentId === 'hotspots' && config.backgroundImage && !config.backgroundDecorative && !String(config.backgroundAltText || '').trim()) {
@@ -207,6 +207,9 @@ export function validateMediaAccessibility(config, componentId) {
   }
   if (componentId === 'profile-cards') items.forEach((item, index) => imageWarning(item, `Profile image ${index + 1}`, 'image'));
   if (componentId === 'image-gallery') items.forEach((item, index) => imageWarning(item, `Gallery image ${index + 1}`));
+  if (['flip-cards', 'info-grid', 'audio-player'].includes(componentId)) {
+    items.forEach((item, index) => imageWarning(item, `Custom icon or image ${index + 1}`, 'iconImage', 'iconAltText', 'iconDecorative'));
+  }
   if (componentId === 'audio-player' && items.some(item => item.content && !String(item.transcript || '').replace(/<[^>]*>/g, '').trim())) {
     warnings.push('Instructional audio should include a transcript.');
   }

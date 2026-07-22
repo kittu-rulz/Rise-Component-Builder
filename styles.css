@@ -1609,6 +1609,13 @@ input[type="range"]::-webkit-slider-thumb:hover {
   gap: 10px;
 }
 
+.media-upload-guidance {
+  margin: -2px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .media-url-row {
   display: flex;
   gap: 8px;
@@ -1762,6 +1769,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .code-export-box pre {
   margin: 0;
+  padding-top: 38px;
 }
 
 .code-export-box code {
@@ -1775,14 +1783,40 @@ input[type="range"]::-webkit-slider-thumb:hover {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: #1E293B;
-  border-color: #334155;
-  color: #E2E8F0;
+  z-index: 1;
+  min-width: 104px;
+  background-color: #2563EB;
+  border-color: #93C5FD;
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
 }
 
 .copy-btn:hover {
-  background-color: #334155;
-  border-color: #475569;
+  background-color: #1D4ED8;
+  border-color: #DBEAFE;
+  color: #FFFFFF;
+}
+
+.copy-btn:focus-visible {
+  outline: 3px solid #FBBF24;
+  outline-offset: 2px;
+}
+
+.copy-btn:disabled {
+  opacity: 1;
+}
+
+.copy-btn.copy-success {
+  background-color: #047857;
+  border-color: #A7F3D0;
+  box-shadow: 0 4px 12px rgba(4, 120, 87, 0.45);
+}
+
+.copy-btn.copy-error {
+  background-color: #B91C1C;
+  border-color: #FECACA;
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.45);
 }
 
 /* Instructions alert box */

@@ -11,7 +11,7 @@ import { componentCatalog, filterCatalog, createCatalogCard } from './js/catalog
 import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditorItem, validateActiveComponent } from './js/editor.js';
 import { writePreview, openPreview, generateIframeContent as compilePreview } from './js/preview.js';
 import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, prepareMediaExport } from './js/export.js';
-import { toRgba as colorToRgba } from './js/utilities.js';
+import { copyTextToClipboard, toRgba as colorToRgba } from './js/utilities.js';
 import { showToast } from './js/toast.js';
 import { validateMediaAccessibility } from './js/media.js';
 import { pruneMediaObjectURLs, releaseAllMediaObjectURLs, restoreMediaReferences } from './js/media-storage.js';
@@ -1149,19 +1149,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btn = document.getElementById(btnId);
     const target = document.getElementById(targetId);
     if (btn && target) {
-      btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(target.textContent || target.innerText).then(() => {
-          const origText = btn.innerText;
-          btn.innerText = 'Copied!';
-          btn.style.backgroundColor = 'var(--success)';
-          btn.style.color = '#FFFFFF';
-          
-          setTimeout(() => {
-            btn.innerText = origText;
-            btn.style.backgroundColor = '';
-            btn.style.color = '';
-          }, 2000);
-        });
+      btn.addEventListener('click', async () => {
+        const code = target.textContent || '';
+        const originalText = btn.textContent;
+        btn.disabled = true;
+
+        try {
+          await copyTextToClipboard(code);
+          btn.textContent = 'Copied!';
+          btn.classList.add('copy-success');
+          showToast('Code copied to the clipboard.', 'success');
+        } catch (error) {
+          btn.textContent = 'Copy failed';
+          btn.classList.add('copy-error');
+          showToast(error.message, 'error', 6000);
+        }
+
+        window.setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('copy-success', 'copy-error');
+          btn.disabled = false;
+        }, 2000);
       });
     }
   }
