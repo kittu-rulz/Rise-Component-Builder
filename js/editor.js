@@ -122,6 +122,18 @@ function createBasicControl(field, controlId, value) {
 export function createSchemaItemEditor({ container, onChange }) {
   const collapsedItems = new WeakSet();
   let draggedIndex = null;
+  let fieldRegistry = [];
+
+  function refreshDependentWarnings(model, changedFieldId) {
+    fieldRegistry.forEach(entry => {
+      if (entry.model !== model) return;
+      const { field } = entry;
+      const depends = field.warningWhen === changedFieldId
+        || field.warningUnless === changedFieldId
+        || (field.warningUnlessAny && field.warningUnlessAny.includes(changedFieldId));
+      if (depends) entry.updateError();
+    });
+  }
 
   function appendField({ field, model, items, schema, indexKey, target, onMultiple }) {
     if (!supportedEditorFieldTypes.includes(field.type)) return;
@@ -150,6 +162,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       if (field.type === 'radio' && field.groupAcrossItems) items.forEach(entry => { entry[field.id] = false; });
       model[field.id] = value;
       updateError(control);
+      refreshDependentWarnings(model, field.id);
       onChange();
     };
 
@@ -166,6 +179,7 @@ export function createSchemaItemEditor({ container, onChange }) {
         onMultiple: references => {
           if (onMultiple) onMultiple(references);
           updateError(media.validationControl);
+          refreshDependentWarnings(model, field.id);
           onChange();
         }
       });
@@ -219,11 +233,13 @@ export function createSchemaItemEditor({ container, onChange }) {
     wrapper.append(error, warning);
     target.appendChild(wrapper);
     updateError(control);
+    fieldRegistry.push({ model, field, updateError: () => updateError(control) });
   }
 
   let lastRender = null;
   function render({ schema, items, config = {} }) {
     lastRender = { schema, items, config };
+    fieldRegistry = [];
     container.innerHTML = '';
 
     if (schema.componentFields?.length) {
