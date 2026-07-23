@@ -17,6 +17,17 @@ test('application loads without console errors and renders the catalog', async (
   expect(errors).toEqual([]);
 });
 
+test('sidebar storage meter reports measured browser storage usage', async ({ page }) => {
+  await page.goto('/');
+  const label = page.locator('#storage-usage-label');
+  const bar = page.locator('.storage-bar');
+  await expect(label).not.toHaveText('Calculating…');
+  await expect(label).toHaveText(/^(\d+% Used|Usage unavailable)$/);
+  const valueNow = Number(await bar.getAttribute('aria-valuenow'));
+  expect(valueNow).toBeGreaterThanOrEqual(0);
+  expect(valueNow).toBeLessThanOrEqual(100);
+});
+
 test('category switching and search filter the catalog', async ({ page }) => {
   await page.goto('/');
   await page.getByText('Knowledge Checks', { exact: true }).click();
@@ -26,6 +37,17 @@ test('category switching and search filter the catalog', async ({ page }) => {
   await page.locator('#search-components').fill('accordion');
   await expect(page.locator('.component-select-card')).toHaveCount(1);
   await expect(page.locator('.component-select-card')).toContainText('Responsive Accordion');
+});
+
+test('catalog cards are native buttons reachable and activatable by keyboard', async ({ page }) => {
+  await page.goto('/');
+  const card = page.locator('.component-select-card').filter({ hasText: 'Responsive Accordion' });
+  await expect(card).toHaveRole('button');
+  await card.focus();
+  await expect(card).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#editor-state')).toBeVisible();
+  await expect(page.locator('#active-component-title')).toHaveText('Responsive Accordion');
 });
 
 test('component selection opens the editor and back returns to the catalog', async ({ page }) => {

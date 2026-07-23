@@ -63,6 +63,22 @@ test('required schema fields display inline errors', async ({ page }) => {
   await expect(label).toHaveAttribute('aria-invalid', 'true');
 });
 
+test('saving is blocked while a required schema field is invalid', async ({ page }) => {
+  await page.locator('#btn-back-to-catalog').click();
+  await page.getByText('Knowledge Checks', { exact: true }).click();
+  await page.locator('.component-select-card').filter({ hasText: 'Multiple Choice' }).click();
+
+  const label = page.locator('#schema-0-label');
+  await label.fill('');
+  await page.locator('#btn-save').click();
+  await expect(page.locator('.toast')).toContainText(/required/i);
+  await expect(page.locator('#modal-save')).toBeHidden();
+
+  await label.fill('Restored answer text');
+  await page.locator('#btn-save').click();
+  await expect(page.locator('#modal-save')).toBeVisible();
+});
+
 test('desktop, tablet, mobile, and refresh controls update the preview shell', async ({ page }) => {
   const viewport = page.locator('#preview-viewport');
   await page.locator('[data-device="tablet"]').click();

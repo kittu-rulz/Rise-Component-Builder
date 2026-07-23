@@ -6,7 +6,6 @@ Only confirmed or directly observable implementation limitations are listed here
 
 - AI Scenario Generator and AI Quiz Generator use a local timer and hardcoded example output. They do not call an AI service.
 - ZIP and SCORM selections are visible, but the package button only shows a warning. No ZIP or SCORM archive is generated.
-- The sidebar storage meter displays a fixed `45% Used` value rather than measured browser storage usage.
 - The export modal contains initial example code in the HTML source, although `app.js` replaces it with generated output when the modal opens.
 
 ## Coupling and duplication
@@ -22,9 +21,8 @@ Only confirmed or directly observable implementation limitations are listed here
 
 - Projects, drafts, favorites, settings, custom themes, the default component theme, and UI mode are persisted in localStorage only. There is no server synchronization or multi-user support.
 - Project schema version 2 validates theme snapshots and overrides and migrates version-1 projects, but it has no component-specific migration or deep schema validation.
-- Renaming and creating custom themes currently use the browser prompt UI; results and errors use reusable toasts.
-- Inline editor errors are rendered, but preview updates continue and project saving is not blocked by component-field validation.
-- Project deletion uses `window.confirm`; normal notifications otherwise use the toast system.
+- Renaming and creating custom themes, and confirming project/theme deletion, use in-app modal dialogs (`#modal-prompt`, `#modal-confirm`) rather than the browser's native `prompt`/`confirm`; results and errors use reusable toasts.
+- Inline editor errors are rendered, and preview updates continue live regardless; clicking Save re-validates all required schema fields, `minItems`, and (for the five modular components) their `validate()` contract, and blocks saving with a toast naming the first failing field until it is fixed. Legacy components without a `validate()` contract are only checked at the field level.
 - Importing a project creates a new project identity, but external resources referenced by its URLs are not copied or verified.
 
 ## Media limitations
@@ -47,11 +45,8 @@ Only confirmed or directly observable implementation limitations are listed here
 ## Accessibility gaps
 
 - Generated component output includes WCAG-oriented semantics and keyboard handling, but conformance still requires manual assistive-technology testing with authored content.
-- Builder modals are visually presented as dialogs but currently lack complete dialog roles, focus trapping, Escape handling, and focus restoration.
-- Catalog selection cards are clickable `div` elements rather than native buttons or links.
 - Alternative text/decorative choices and audio/video alternatives use visible, non-blocking warnings. Conditional field hiding is not implemented.
 - Theme contrast checks cover the configured token pairs at authoring time, but they cannot guarantee contrast for arbitrary uploaded imagery, rich text, browser states, or all component-specific combinations.
-- Playwright tracks modal focus trapping and trigger-focus restoration as explicit `fixme` checks; these are not counted as passing accessibility coverage.
 
 ## Security and escaping
 
@@ -65,7 +60,7 @@ Only confirmed or directly observable implementation limitations are listed here
 
 - Default file-size limits are enforced in code but are not yet exposed as application settings.
 - IndexedDB writes and browser metadata parsing still require the browser to hold selected file data temporarily; files near the 100 MB video limit can cause memory pressure on constrained devices.
-- Browser storage quotas vary and the fixed sidebar storage meter does not report actual IndexedDB usage.
+- The sidebar storage meter uses `navigator.storage.estimate()`, which reports the browser's whole-origin quota usage (localStorage plus IndexedDB) rather than an exact application-level breakdown; it also falls back to "Usage unavailable" in browsers without the Storage API.
 
 ## Test coverage limitations
 

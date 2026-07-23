@@ -8,7 +8,7 @@ import {
   saveFavorites, saveProject, saveSettings, saveUiTheme
 } from './js/storage.js';
 import { componentCatalog, filterCatalog, createCatalogCard } from './js/catalog.js';
-import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditorItem, validateActiveComponent } from './js/editor.js';
+import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditorItem, validateActiveComponent, validateSchemaField } from './js/editor.js';
 import { writePreview, openPreview, generateIframeContent as compilePreview } from './js/preview.js';
 import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, prepareMediaExport } from './js/export.js';
 import { copyTextToClipboard, toRgba as colorToRgba } from './js/utilities.js';
@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'btn-open-theme-manager-style': 'modal-theme-manager'
   };
   const modalOverlays = document.querySelectorAll('.modal-overlay');
+  modalOverlays.forEach(overlay => overlay.setAttribute('aria-hidden', 'true'));
 
   // ==========================================
   // INITIALIZATION
@@ -140,6 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 3. Update Favorites count
     updateFavoritesBadge();
+    updateStorageMeter();
 
     // 4. Hook up live sync for values in Form Inputs
     setupFormListeners();
@@ -155,6 +157,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.setInterval(saveCurrentDraft, 60000);
+    window.setInterval(updateStorageMeter, 30000);
   }
 
   // ==========================================
@@ -325,8 +328,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         } catch (error) { showToast(error.message, 'error'); }
       });
       if (!theme.isBuiltIn && !theme.isLocked) {
-        addThemeAction(actions, 'Rename', () => {
-          const nextName = window.prompt('Rename theme', theme.name);
+        addThemeAction(actions, 'Rename', async () => {
+          const nextName = await openPromptDialog({ title: 'Rename Theme', label: 'Theme Name', initialValue: theme.name, confirmLabel: 'Rename' });
           if (nextName === null) return;
           try {
             const renamed = saveCustomTheme(renameCustomTheme(theme, nextName));
@@ -337,8 +340,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             showToast('Theme renamed.', 'success');
           } catch (error) { showToast(error.message, 'error'); }
         });
-        addThemeAction(actions, 'Delete', () => {
-          if (!window.confirm(`Delete “${theme.name}”?`)) return;
+        addThemeAction(actions, 'Delete', async () => {
+          const confirmed = await openConfirmDialog({ title: 'Delete Theme', message: `Delete “${theme.name}”? This cannot be undone.`, confirmLabel: 'Delete', danger: true });
+          if (!confirmed) return;
           try {
             deleteCustomTheme(theme.id);
             customThemes = loadCustomThemes();
@@ -349,6 +353,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               applyComponentTheme(fallback);
             } else renderThemeManager();
             showToast(`Deleted “${theme.name}”.`, 'success');
+            updateStorageMeter();
           } catch (error) { showToast(error.message, 'error'); }
         });
       }
@@ -371,8 +376,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     URL.revokeObjectURL(url);
   }
 
-  document.getElementById('btn-save-current-theme').addEventListener('click', () => {
-    const name = window.prompt('Name the new theme', `${appState.activeTheme.name} Custom`);
+  document.getElementById('btn-save-current-theme').addEventListener('click', async () => {
+    const name = await openPromptDialog({ title: 'Save Theme', label: 'Theme Name', initialValue: `${appState.activeTheme.name} Custom`, confirmLabel: 'Save' });
     if (name === null) return;
     try {
       const theme = saveCustomTheme(createThemeFromCurrentStyling(name, appState.activeTheme, appState.componentOverrides));
@@ -666,6 +671,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     favoritesCountBadge.innerText = appState.favorites.size;
   }
 
+  function formatStorageBytes(bytes) {
+    if (!Number.isFinite(bytes)) return 'Unknown';
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let value = bytes / 1024;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+    return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unitIndex]}`;
+  }
+
+  async function updateStorageMeter() {
+    const label = document.getElementById('storage-usage-label');
+    const bar = document.getElementById('storage-progress-bar');
+    const track = bar?.closest('.storage-bar');
+    if (!label || !bar || !track) return;
+
+    if (!navigator.storage?.estimate) {
+      label.textContent = 'Usage unavailable';
+      bar.style.width = '0%';
+      track.setAttribute('aria-valuenow', '0');
+      return;
+    }
+
+    try {
+      const { usage = 0, quota = 0 } = await navigator.storage.estimate();
+      if (!quota) {
+        label.textContent = 'Usage unavailable';
+        bar.style.width = '0%';
+        track.setAttribute('aria-valuenow', '0');
+        return;
+      }
+      const percent = Math.min(100, Math.round((usage / quota) * 100));
+      label.textContent = `${percent}% Used`;
+      label.title = `${formatStorageBytes(usage)} of ${formatStorageBytes(quota)} used`;
+      bar.style.width = `${percent}%`;
+      track.setAttribute('aria-valuenow', String(percent));
+      track.setAttribute('aria-label', `Local browser storage used: ${formatStorageBytes(usage)} of ${formatStorageBytes(quota)}`);
+    } catch {
+      label.textContent = 'Usage unavailable';
+      bar.style.width = '0%';
+      track.setAttribute('aria-valuenow', '0');
+    }
+  }
+
   // ==========================================
   // EDITOR TABS SWITCHING
   // ==========================================
@@ -812,16 +864,140 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ==========================================
   let saveDialogMode = 'save';
   let renameTargetId = null;
+  let modalStack = [];
+  const modalFocusReturn = new Map();
+  const modalDefaultSettlers = new Map();
+
+  function getFocusableElements(container) {
+    if (!container) return [];
+    return Array.from(container.querySelectorAll(
+      'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter(el => el.offsetParent !== null);
+  }
 
   function openModal(id) {
     const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'flex';
+    if (!modal) return;
+    if (!modalFocusReturn.has(id)) modalFocusReturn.set(id, document.activeElement);
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    modalStack = modalStack.filter(existing => existing !== id);
+    modalStack.push(id);
+    const focusable = getFocusableElements(modal.querySelector('.modal-card'));
+    (focusable[0] || modal.querySelector('.modal-card'))?.focus();
   }
 
   function closeModal(id) {
     const modal = document.getElementById(id);
-    if (modal) modal.style.display = 'none';
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    modalStack = modalStack.filter(existing => existing !== id);
+    const trigger = modalFocusReturn.get(id);
+    modalFocusReturn.delete(id);
+    if (trigger && typeof trigger.focus === 'function' && document.contains(trigger)) trigger.focus();
+    const settleAsDismissed = modalDefaultSettlers.get(id);
+    if (settleAsDismissed) {
+      modalDefaultSettlers.delete(id);
+      settleAsDismissed();
+    }
   }
+
+  function openConfirmDialog({ title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false }) {
+    return new Promise(resolve => {
+      document.getElementById('modal-confirm-title').textContent = title;
+      document.getElementById('modal-confirm-message').textContent = message;
+      const confirmBtn = document.getElementById('btn-confirm-dialog-action');
+      const cancelBtn = document.getElementById('btn-confirm-dialog-cancel');
+      confirmBtn.textContent = confirmLabel;
+      confirmBtn.classList.toggle('btn-danger', danger);
+      confirmBtn.classList.toggle('btn-primary', !danger);
+      cancelBtn.textContent = cancelLabel;
+
+      let settled = false;
+      const settle = value => {
+        if (settled) return;
+        settled = true;
+        confirmBtn.removeEventListener('click', onConfirm);
+        resolve(value);
+      };
+      const onConfirm = () => {
+        settle(true);
+        closeModal('modal-confirm');
+      };
+      confirmBtn.addEventListener('click', onConfirm);
+      modalDefaultSettlers.set('modal-confirm', () => settle(false));
+      openModal('modal-confirm');
+    });
+  }
+
+  function openPromptDialog({ title, message = '', label, initialValue = '', placeholder = '', confirmLabel = 'Save' }) {
+    return new Promise(resolve => {
+      document.getElementById('modal-prompt-title').textContent = title;
+      const messageEl = document.getElementById('modal-prompt-message');
+      messageEl.textContent = message;
+      messageEl.hidden = !message;
+      document.getElementById('modal-prompt-label').textContent = label;
+      const input = document.getElementById('modal-prompt-input');
+      input.value = initialValue;
+      input.placeholder = placeholder;
+      const confirmBtn = document.getElementById('btn-prompt-dialog-action');
+      confirmBtn.textContent = confirmLabel;
+
+      let settled = false;
+      const settle = value => {
+        if (settled) return;
+        settled = true;
+        confirmBtn.removeEventListener('click', onConfirm);
+        input.removeEventListener('keydown', onKeydown);
+        resolve(value);
+      };
+      const onConfirm = () => {
+        settle(input.value);
+        closeModal('modal-prompt');
+      };
+      const onKeydown = event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          onConfirm();
+        }
+      };
+      confirmBtn.addEventListener('click', onConfirm);
+      input.addEventListener('keydown', onKeydown);
+      modalDefaultSettlers.set('modal-prompt', () => settle(null));
+      openModal('modal-prompt');
+      input.focus();
+      input.select();
+    });
+  }
+
+  document.addEventListener('keydown', event => {
+    if (!modalStack.length) return;
+    const topId = modalStack[modalStack.length - 1];
+    const modal = document.getElementById(topId);
+    if (!modal) return;
+    const card = modal.querySelector('.modal-card');
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeModal(topId);
+      return;
+    }
+
+    if (event.key === 'Tab') {
+      const focusable = getFocusableElements(card);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && (document.activeElement === first || !card.contains(document.activeElement))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !card.contains(document.activeElement))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  });
 
   function syncSettingsControls() {
     document.getElementById('settings-default-font').value = appState.settings.defaultFont;
@@ -903,6 +1079,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  function collectValidationErrors() {
+    const schema = appState.selectedComponent?.editorSchema;
+    if (!schema) return [];
+    const items = Array.isArray(appState.config.items) ? appState.config.items : [];
+    const errors = [];
+
+    if (items.length < (schema.minItems || 0)) {
+      errors.push(`Add at least ${schema.minItems} ${schema.itemLabel.toLowerCase()}${schema.minItems === 1 ? '' : 's'}.`);
+    }
+    (schema.componentFields || []).forEach(field => {
+      errors.push(...validateSchemaField(field, appState.config[field.id], items));
+    });
+    items.forEach((item, index) => {
+      (schema.itemFields || []).forEach(field => {
+        validateSchemaField(field, item[field.id], items)
+          .forEach(message => errors.push(`${schema.itemLabel} ${index + 1}: ${message}`));
+      });
+    });
+
+    const componentResult = validateActiveComponent(appState, componentRegistry);
+    if (!componentResult.valid) errors.push(...componentResult.errors);
+
+    return errors;
+  }
+
   function openSaveDialog(mode = 'save', projectId = null) {
     saveDialogMode = mode;
     renameTargetId = projectId;
@@ -931,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       saveDraft(saved);
       closeModal('modal-save');
       showToast(`Saved “${saved.name}”.`, 'success');
+      updateStorageMeter();
       const accessibilityWarnings = validateMediaAccessibility(appState.config, appState.selectedComponent.id);
       if (accessibilityWarnings.length) showToast(accessibilityWarnings[0], 'warning', 6000);
     } catch (error) {
@@ -985,13 +1187,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         catch (error) { showToast(error.message, 'error'); }
       });
       addAction('Export JSON', () => downloadProjectJson(project));
-      addAction('Delete', () => {
-        if (!window.confirm(`Delete “${project.name}”? This cannot be undone.`)) return;
+      addAction('Delete', async () => {
+        const confirmed = await openConfirmDialog({ title: 'Delete Project', message: `Delete “${project.name}”? This cannot be undone.`, confirmLabel: 'Delete', danger: true });
+        if (!confirmed) return;
         try {
           deleteProject(project.id);
           if (appState.currentProjectId === project.id) appState.currentProjectId = null;
           renderStoredProjects();
           showToast(`Deleted “${project.name}”.`, 'success');
+          updateStorageMeter();
         } catch (error) { showToast(error.message, 'error'); }
       });
       card.append(details, actions);
@@ -1022,7 +1226,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     openModal('modal-open');
   });
 
-  document.getElementById('btn-save').addEventListener('click', () => openSaveDialog('save'));
+  document.getElementById('btn-save').addEventListener('click', () => {
+    const validationErrors = collectValidationErrors();
+    if (validationErrors.length) {
+      switchEditorTab('content');
+      showToast(validationErrors[0], 'error', 6000);
+      return;
+    }
+    openSaveDialog('save');
+  });
 
   document.getElementById('btn-import-project').addEventListener('click', () => importProjectFile.click());
   importProjectFile.addEventListener('change', async () => {
@@ -1054,26 +1266,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (modalId === 'modal-settings') syncSettingsControls();
         if (modalId === 'modal-theme-manager') renderThemeManager();
-        
-        modalElem.style.display = 'flex';
+
+        openModal(modalId);
       });
     }
   });
 
   // Close modals
   modalOverlays.forEach(overlay => {
-    const card = overlay.querySelector('.modal-card');
     const closeBtns = overlay.querySelectorAll('.modal-close-btn, .modal-cancel-btn');
-    
+
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
-        overlay.style.display = 'none';
+        closeModal(overlay.id);
       }
     });
 
     closeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
-        overlay.style.display = 'none';
+        closeModal(overlay.id);
       });
     });
   });
@@ -1119,7 +1330,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!appState.settings.autosave) clearDraft();
         else saveCurrentDraft();
         showToast('Settings applied successfully.', 'success');
-        document.getElementById('modal-settings').style.display = 'none';
+        closeModal('modal-settings');
         updateLivePreview();
       } catch (error) {
         showToast(error.message, 'error', 5000);

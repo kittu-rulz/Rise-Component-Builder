@@ -79,5 +79,27 @@ test('automatically detectable component color contrast is reported', async ({ p
   await expect(report.locator('.contrast-result.fail')).toHaveCount(0);
 });
 
-test.fixme('builder modal traps focus while open', async () => {});
-test.fixme('closing a builder modal restores focus to its trigger', async () => {});
+test('builder modal traps focus while open', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#btn-settings').click();
+  const modal = page.locator('#modal-settings');
+  await expect(modal).toBeVisible();
+  await expect(modal).toHaveAttribute('aria-hidden', 'false');
+  const focusableCount = await modal
+    .locator('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled])')
+    .count();
+  for (let index = 0; index < focusableCount + 3; index += 1) {
+    await page.keyboard.press('Tab');
+    const withinModal = await page.evaluate(() => document.getElementById('modal-settings').contains(document.activeElement));
+    expect(withinModal).toBe(true);
+  }
+});
+
+test('closing a builder modal restores focus to its trigger', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#btn-settings').click();
+  await expect(page.locator('#modal-settings')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#modal-settings')).toBeHidden();
+  await expect(page.locator('#btn-settings')).toBeFocused();
+});

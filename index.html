@@ -165,10 +165,10 @@
           <div class="storage-usage">
             <div class="storage-text">
               <span>Local Storage</span>
-              <span>45% Used</span>
+              <span id="storage-usage-label">Calculating…</span>
             </div>
-            <div class="storage-bar">
-              <div class="storage-progress" style="width: 45%;"></div>
+            <div class="storage-bar" role="progressbar" aria-label="Local browser storage used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="storage-progress-bar" class="storage-progress" style="width: 0%;"></div>
             </div>
           </div>
         </div>
@@ -444,9 +444,9 @@
 
   <!-- Modal: Open Component -->
   <div id="modal-open" class="modal-overlay" style="display: none;">
-    <div class="modal-card modal-large">
+    <div class="modal-card modal-large" role="dialog" aria-modal="true" aria-labelledby="modal-open-title" tabindex="-1">
       <div class="modal-header">
-        <h3>Open Component</h3>
+        <h3 id="modal-open-title">Open Component</h3>
         <button class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
@@ -464,7 +464,7 @@
 
   <!-- Modal: Save Component -->
   <div id="modal-save" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="save-modal-title" tabindex="-1">
       <div class="modal-header">
         <h3 id="save-modal-title">Save Project</h3>
         <button class="modal-close-btn">&times;</button>
@@ -487,9 +487,9 @@
 
   <!-- Modal: Export Code -->
   <div id="modal-export" class="modal-overlay" style="display: none;">
-    <div class="modal-card modal-large">
+    <div class="modal-card modal-large" role="dialog" aria-modal="true" aria-labelledby="modal-export-title" tabindex="-1">
       <div class="modal-header">
-        <h3>Export Custom Block</h3>
+        <h3 id="modal-export-title">Export Custom Block</h3>
         <button class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
@@ -568,10 +568,10 @@
 
   <!-- Modal: Component Theme Manager -->
   <div id="modal-theme-manager" class="modal-overlay" style="display: none;">
-    <div class="modal-card modal-theme-manager">
+    <div class="modal-card modal-theme-manager" role="dialog" aria-modal="true" aria-labelledby="modal-theme-manager-title" tabindex="-1">
       <div class="modal-header">
         <div>
-          <h3>Component Theme Manager</h3>
+          <h3 id="modal-theme-manager-title">Component Theme Manager</h3>
           <p class="theme-manager-subtitle">Controls generated and exported components, independently of the builder interface mode.</p>
         </div>
         <button class="modal-close-btn" aria-label="Close Theme Manager">&times;</button>
@@ -604,9 +604,9 @@
 
   <!-- Modal: Settings -->
   <div id="modal-settings" class="modal-overlay" style="display: none;">
-    <div class="modal-card">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title" tabindex="-1">
       <div class="modal-header">
-        <h3>Builder Settings</h3>
+        <h3 id="modal-settings-title">Builder Settings</h3>
         <button class="modal-close-btn">&times;</button>
       </div>
       <div class="modal-body">
@@ -645,6 +645,44 @@
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
         <button id="btn-save-settings" class="btn btn-primary">Apply Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Generic Confirm -->
+  <div id="modal-confirm" class="modal-overlay" style="display: none;">
+    <div class="modal-card" role="alertdialog" aria-modal="true" aria-labelledby="modal-confirm-title" aria-describedby="modal-confirm-message" tabindex="-1">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">Confirm</h3>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" id="modal-confirm-message"></p>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-confirm-dialog-cancel" class="btn btn-secondary modal-cancel-btn">Cancel</button>
+        <button id="btn-confirm-dialog-action" class="btn btn-primary">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Generic Prompt -->
+  <div id="modal-prompt" class="modal-overlay" style="display: none;">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-prompt-title" tabindex="-1">
+      <div class="modal-header">
+        <h3 id="modal-prompt-title">Rename</h3>
+        <button class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc" id="modal-prompt-message" hidden></p>
+        <div class="input-wrapper">
+          <label for="modal-prompt-input" id="modal-prompt-label">Name</label>
+          <input type="text" id="modal-prompt-input" placeholder="">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
+        <button id="btn-prompt-dialog-action" class="btn btn-primary">Save</button>
       </div>
     </div>
   </div>

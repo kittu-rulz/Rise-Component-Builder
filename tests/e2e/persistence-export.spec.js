@@ -24,8 +24,9 @@ test('project save, reload, open, draft restore, and delete persist locally', as
   await expect(card).toBeVisible();
   await card.getByRole('button', { name: 'Load' }).click();
   await page.locator('#btn-open').click();
-  page.once('dialog', dialog => dialog.accept());
   await page.locator('.saved-component-card').filter({ hasText: 'Persistence E2E' }).getByRole('button', { name: 'Delete' }).click();
+  await expect(page.locator('#modal-confirm')).toBeVisible();
+  await page.locator('#btn-confirm-dialog-action').click();
   await expect(page.locator('.saved-component-card').filter({ hasText: 'Persistence E2E' })).toHaveCount(0);
 });
 
@@ -47,6 +48,51 @@ test('selected default component theme persists independently from UI mode', asy
   await page.locator('#btn-theme-manager').click();
   await expect(page.locator('.theme-card').filter({ hasText: 'Healthcare' })).toContainText('Default');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+
+test('creating and renaming a custom theme uses in-app prompt dialogs', async ({ page }) => {
+  await openAccordion(page);
+  await page.locator('#btn-theme-manager').click();
+  await page.locator('#btn-save-current-theme').click();
+  const promptModal = page.locator('#modal-prompt');
+  await expect(promptModal).toBeVisible();
+  await page.locator('#modal-prompt-input').fill('My Custom Theme');
+  await page.locator('#btn-prompt-dialog-action').click();
+  await expect(promptModal).toBeHidden();
+  const card = page.locator('.theme-card').filter({ hasText: 'My Custom Theme' });
+  await expect(card).toBeVisible();
+
+  await card.getByRole('button', { name: 'Rename' }).click();
+  await expect(promptModal).toBeVisible();
+  await expect(page.locator('#modal-prompt-input')).toHaveValue('My Custom Theme');
+  await page.keyboard.press('Escape');
+  await expect(promptModal).toBeHidden();
+  await expect(page.locator('.theme-card').filter({ hasText: 'My Custom Theme' })).toBeVisible();
+
+  await card.getByRole('button', { name: 'Rename' }).click();
+  await page.locator('#modal-prompt-input').fill('Renamed Theme');
+  await page.locator('#btn-prompt-dialog-action').click();
+  await expect(page.locator('.theme-card').filter({ hasText: 'Renamed Theme' })).toBeVisible();
+});
+
+test('deleting a custom theme uses an in-app confirm dialog', async ({ page }) => {
+  await openAccordion(page);
+  await page.locator('#btn-theme-manager').click();
+  await page.locator('#btn-save-current-theme').click();
+  await page.locator('#modal-prompt-input').fill('Deletable Theme');
+  await page.locator('#btn-prompt-dialog-action').click();
+  const card = page.locator('.theme-card').filter({ hasText: 'Deletable Theme' });
+  await expect(card).toBeVisible();
+
+  await card.getByRole('button', { name: 'Delete' }).click();
+  const confirmModal = page.locator('#modal-confirm');
+  await expect(confirmModal).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.theme-card').filter({ hasText: 'Deletable Theme' })).toBeVisible();
+
+  await card.getByRole('button', { name: 'Delete' }).click();
+  await page.locator('#btn-confirm-dialog-action').click();
+  await expect(page.locator('.theme-card').filter({ hasText: 'Deletable Theme' })).toHaveCount(0);
 });
 
 test('export contains selected content and theme, excludes unsafe executable markup, and downloads runnable HTML', async ({ page, context }) => {

@@ -169,15 +169,17 @@ export function filterCatalog(catalog, { activeCategory, searchQuery, favorites 
 }
 
 export function createCatalogCard(component, onSelect) {
-  const card = document.createElement('div');
+  const card = document.createElement('button');
+  card.type = 'button';
   card.className = 'component-select-card';
+  card.setAttribute('aria-label', `${component.title}: ${component.desc}`);
   card.innerHTML = `
-    <div class="card-icon-container">${component.icon}</div>
+    <div class="card-icon-container" aria-hidden="true">${component.icon}</div>
     <h3>${component.title}</h3>
     <p>${component.desc}</p>
     <div class="card-footer">
       <span class="card-tag">${component.category}</span>
-      <span class="card-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
+      <span class="card-arrow" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></span>
     </div>`;
   card.addEventListener('click', () => onSelect(component));
   return card;

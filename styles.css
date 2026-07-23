@@ -230,6 +230,17 @@ a {
   box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
 }
 
+.btn-danger {
+  background-color: var(--danger);
+  color: #FFFFFF;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+  background-color: #DC2626;
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.35);
+}
+
 .btn-text {
   background: transparent;
   border: none;
@@ -509,6 +520,9 @@ a {
 
 /* Component Selector Card */
 .component-select-card {
+  appearance: none;
+  width: 100%;
+  text-align: left;
   background-color: var(--bg-panel);
   border: 1px solid var(--border-color);
   border-radius: 12px;
