@@ -266,7 +266,7 @@ export function createSchemaItemEditor({ container, onChange }) {
     items.forEach((item, index) => {
       const card = document.createElement('section');
       card.className = 'dynamic-item-card';
-      card.draggable = true;
+      card.draggable = false;
       card.dataset.index = index;
       const collapsed = collapsedItems.has(item);
       card.classList.toggle('collapsed', collapsed);
@@ -340,20 +340,17 @@ export function createSchemaItemEditor({ container, onChange }) {
       }
       card.appendChild(body);
 
-      let dragFromHandle = false;
+      // The card is only made a native drag source (`draggable`) while a
+      // gesture that began on the `.drag-handle` button is in progress.
+      // Leaving `draggable` on at all times causes browsers to start
+      // tracking a potential native drag on ANY mousedown over the card,
+      // which competes with and interrupts interactive children (range
+      // sliders, inputs) even when `dragstart` itself is later cancelled.
       card.addEventListener('mousedown', event => {
-        dragFromHandle = Boolean(event.target.closest('.drag-handle'));
+        card.draggable = Boolean(event.target.closest('.drag-handle'));
       });
+      card.addEventListener('mouseup', () => { card.draggable = false; });
       card.addEventListener('dragstart', event => {
-        // dragstart's event.target is always the draggable card itself, not
-        // the descendant the gesture began on, so we track the mousedown
-        // origin separately to restrict native dragging to the handle and
-        // leave interactive children (range sliders, inputs, buttons) free
-        // to handle their own mouse interaction.
-        if (!dragFromHandle) {
-          event.preventDefault();
-          return;
-        }
         draggedIndex = index;
         card.classList.add('dragging');
         event.dataTransfer.effectAllowed = 'move';
@@ -363,7 +360,7 @@ export function createSchemaItemEditor({ container, onChange }) {
         event.preventDefault();
         if (draggedIndex !== null && draggedIndex !== index) move(draggedIndex, index);
       });
-      card.addEventListener('dragend', () => { draggedIndex = null; card.classList.remove('dragging'); });
+      card.addEventListener('dragend', () => { draggedIndex = null; card.classList.remove('dragging'); card.draggable = false; });
       container.appendChild(card);
     });
   }
