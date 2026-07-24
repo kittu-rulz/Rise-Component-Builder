@@ -288,10 +288,10 @@ export function createSchemaItemEditor({ container, onChange }) {
 
       const actions = document.createElement('div');
       actions.className = 'item-card-actions';
-      const addButton = (label, title, handler, disabled = false) => {
+      const addButton = (label, title, handler, disabled = false, extraClass = '') => {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'item-action-btn';
+        button.className = extraClass ? `item-action-btn ${extraClass}` : 'item-action-btn';
         button.textContent = label;
         button.title = title;
         button.setAttribute('aria-label', title);
@@ -299,7 +299,7 @@ export function createSchemaItemEditor({ container, onChange }) {
         button.addEventListener('click', handler);
         actions.appendChild(button);
       };
-      addButton('⠿', 'Drag to reorder', event => event.preventDefault());
+      addButton('⠿', 'Drag to reorder', event => event.preventDefault(), false, 'drag-handle');
       addButton('↑', 'Move item up', () => move(index, index - 1), index === 0);
       addButton('↓', 'Move item down', () => move(index, index + 1), index === items.length - 1);
       addButton('⧉', 'Duplicate item', () => {
@@ -340,7 +340,20 @@ export function createSchemaItemEditor({ container, onChange }) {
       }
       card.appendChild(body);
 
+      let dragFromHandle = false;
+      card.addEventListener('mousedown', event => {
+        dragFromHandle = Boolean(event.target.closest('.drag-handle'));
+      });
       card.addEventListener('dragstart', event => {
+        // dragstart's event.target is always the draggable card itself, not
+        // the descendant the gesture began on, so we track the mousedown
+        // origin separately to restrict native dragging to the handle and
+        // leave interactive children (range sliders, inputs, buttons) free
+        // to handle their own mouse interaction.
+        if (!dragFromHandle) {
+          event.preventDefault();
+          return;
+        }
         draggedIndex = index;
         card.classList.add('dragging');
         event.dataTransfer.effectAllowed = 'move';

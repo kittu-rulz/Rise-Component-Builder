@@ -16,6 +16,7 @@ Only confirmed or directly observable implementation limitations are listed here
 - Shared interaction CSS and component-specific CSS are emitted from one preview template, so a change can affect unrelated generated components.
 - Theme tokens centralize common colors, typography, radius, shadow, density, and motion values, but not every legacy component-specific spacing or decorative value has been tokenized.
 - Component schemas exist for all catalog entries, but legacy generators do not expose independent `validate()` contracts.
+- Every item card's `<section>` is a native HTML5 drag source so cards can be reordered by dragging, but `dragstart`'s `event.target` is always that section, never the descendant a gesture began on. Native dragging is now restricted to the `.drag-handle` button (via a separately tracked `mousedown` origin) so range sliders, text inputs, and other interactive controls inside a card are not hijacked mid-drag. See "Editor rendering flow" in ARCHITECTURE.md.
 
 ## Persistence and validation
 

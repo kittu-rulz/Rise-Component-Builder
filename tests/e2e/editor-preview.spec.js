@@ -34,6 +34,28 @@ test('items can be added, duplicated, deleted, moved, and collapsed', async ({ p
   await expect(cards.first()).toHaveClass(/collapsed/);
 });
 
+test('range sliders inside draggable item cards are not hijacked by drag-to-reorder', async ({ page }) => {
+  await page.locator('#btn-back-to-catalog').click();
+  await page.locator('.component-select-card').filter({ hasText: 'Interactive Hotspots' }).click();
+
+  const input = page.locator('#schema-0-x');
+  await expect(input).toHaveValue('25');
+  await input.scrollIntoViewIfNeeded();
+  const box = await input.boundingBox();
+  const thumbY = box.y + box.height / 2;
+  await page.mouse.move(box.x + (25 / 100) * box.width, thumbY);
+  await page.mouse.down();
+  await page.mouse.move(box.x + (80 / 100) * box.width, thumbY, { steps: 10 });
+  await page.mouse.up();
+  await expect.poll(() => input.inputValue()).not.toBe('25');
+  expect(Number(await input.inputValue())).toBeGreaterThan(70);
+
+  const cards = page.locator('#dynamic-items-container > .dynamic-item-card:not(.component-fields-card)');
+  const firstBefore = await cards.nth(0).locator('.item-collapse-btn').textContent();
+  await cards.nth(0).locator('.drag-handle').dragTo(cards.nth(1));
+  await expect.poll(() => cards.nth(0).locator('.item-collapse-btn').textContent()).not.toBe(firstBefore);
+});
+
 test('design controls update theme variables in preview', async ({ page }) => {
   await page.getByRole('button', { name: 'Design & Style' }).click();
   await page.locator('#input-color-primary-text').fill('#123456');
