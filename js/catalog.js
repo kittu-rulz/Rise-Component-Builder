@@ -51,6 +51,13 @@ export const componentCatalog = [
       icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M9 12l2 2 4-4"></path></svg>`
     },
     {
+      id: 'multiple-select',
+      title: 'Multiple Select Check',
+      desc: 'Select-all-that-apply knowledge check where more than one answer option can be correct.',
+      category: 'knowledge',
+      icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><path d="M5 6.5l1 1 2-2"></path><rect x="14" y="3" width="7" height="7" rx="1"></rect><path d="M16 6.5l1 1 2-2"></path><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>`
+    },
+    {
       id: 'sorting-activity',
       title: 'Sorting Drag-and-Drop',
       desc: 'Let learners sort concept cards into category columns with instant matching indicator flags.',

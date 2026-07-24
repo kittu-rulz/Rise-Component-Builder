@@ -25,9 +25,10 @@ import * as tabs from './components/tabs.js';
 import * as flipCards from './components/flip-cards.js';
 import * as verticalTimeline from './components/vertical-timeline.js';
 import * as multipleChoice from './components/multiple-choice.js';
+import * as multipleSelect from './components/multiple-select.js';
 
 const componentRegistry = Object.fromEntries(
-  [accordion, tabs, flipCards, verticalTimeline, multipleChoice].map(component => [component.id, component])
+  [accordion, tabs, flipCards, verticalTimeline, multipleChoice, multipleSelect].map(component => [component.id, component])
 );
 const generateIframeContent = () => compilePreview(appState, componentRegistry, colorToRgba);
 

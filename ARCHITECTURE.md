@@ -32,7 +32,8 @@ v2/
 │   ├── tabs.js
 │   ├── flip-cards.js
 │   ├── vertical-timeline.js
-│   └── multiple-choice.js
+│   ├── multiple-choice.js
+│   └── multiple-select.js
 └── tests/
     ├── fixtures/             Reusable project/theme/content fixtures
     ├── setup/                Vitest setup and cleanup
@@ -71,7 +72,7 @@ Contrast evaluation reports WCAG AA normal- and large-text results for authored 
 
 `js/catalog.js` contains static metadata for every catalog entry: identifier, display title, description, category, and icon. It attaches the schema returned by `getEditorSchema()` to each entry. Catalog filtering handles category, favorites, and text search.
 
-Five component implementations are registered from `components/*.js`. Each exposes identity metadata, defaults, an editor schema, HTML/CSS/JS generators, and validation. Other component markup still branches on `componentId` inside `js/preview.js`, and their example defaults are selected in `app.js`.
+Six component implementations are registered from `components/*.js`. Each exposes identity metadata, defaults, an editor schema, HTML/CSS/JS generators, and validation. Other component markup still branches on `componentId` inside `js/preview.js`, and their example defaults are selected in `app.js`.
 
 ## Editor rendering flow
 
@@ -145,4 +146,4 @@ When media is uploaded, a validated record is written to IndexedDB and a registe
 
 Vitest runs module-level and generated-output integration tests. DOM parsing uses jsdom only where necessary. V8 coverage gates the directly unit-tested state, storage, theme, utility, and modular generator layers at 70% statements, 60% branches, 70% functions, and 70% lines.
 
-Playwright starts `tests/e2e/server.mjs` against the local workspace and drives Chromium, Firefox, and desktop WebKit (`playwright.config.js`) without requiring a hosted environment. Browser suites cover the shell, schema editor, iframe preview, five modular interactions, persistence, downloads, responsive sizes, and selected accessibility checks, including builder modal focus trapping and trigger-focus restoration. axe-core inspects stable builder regions; iframe semantics also receive direct role, state, focus, and reference assertions. Tests that depend on Chromium-only Playwright permission grants (clipboard read/write) or on a WebKit-on-Windows IndexedDB Blob limitation degrade gracefully per-browser rather than failing outright — see Test coverage limitations in KNOWN-ISSUES.md. GitHub Actions runs both layers and retains failure traces, screenshots, videos, and coverage reports.
+Playwright starts `tests/e2e/server.mjs` against the local workspace and drives Chromium, Firefox, and desktop WebKit (`playwright.config.js`) without requiring a hosted environment. Browser suites cover the shell, schema editor, iframe preview, six modular interactions, persistence, downloads, responsive sizes, and selected accessibility checks, including builder modal focus trapping and trigger-focus restoration. axe-core inspects stable builder regions; iframe semantics also receive direct role, state, focus, and reference assertions. Tests that depend on Chromium-only Playwright permission grants (clipboard read/write) or on a WebKit-on-Windows IndexedDB Blob limitation degrade gracefully per-browser rather than failing outright — see Test coverage limitations in KNOWN-ISSUES.md. GitHub Actions runs both layers and retains failure traces, screenshots, videos, and coverage reports.

@@ -31,7 +31,7 @@ test('sidebar storage meter reports measured browser storage usage', async ({ pa
 test('category switching and search filter the catalog', async ({ page }) => {
   await page.goto('/');
   await page.getByText('Knowledge Checks', { exact: true }).click();
-  await expect(page.locator('.component-select-card')).toHaveCount(3);
+  await expect(page.locator('.component-select-card')).toHaveCount(4);
   await expect(page.locator('.component-select-card').filter({ hasText: 'Multiple Choice' })).toBeVisible();
   await page.locator('.nav-item[data-category="interactive"]').click();
   await page.locator('#search-components').fill('accordion');

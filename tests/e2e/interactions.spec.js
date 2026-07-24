@@ -65,6 +65,32 @@ test('multiple choice validates missing selection and announces correct and inco
   await expect(feedback).toHaveAttribute('aria-live', 'polite');
 });
 
+test('multiple select toggles independent options and requires all correct answers to pass', async ({ page }) => {
+  const frame = await openComponent(page, 'Multiple Select Check', 'Knowledge Checks');
+  const options = frame.locator('.quiz-option');
+  const submit = frame.locator('.quiz-submit-btn');
+  const feedback = frame.locator('#quiz-feedback-box');
+
+  await submit.click();
+  await expect(feedback).toContainText(/select/i);
+
+  await options.nth(0).click();
+  await expect(options.nth(0)).toHaveAttribute('aria-checked', 'true');
+  await options.nth(0).click();
+  await expect(options.nth(0)).toHaveAttribute('aria-checked', 'false');
+
+  await options.nth(0).click();
+  await options.nth(2).click();
+  await submit.click();
+  await expect(feedback).toContainText(/incorrect|review/i);
+
+  await options.nth(2).click();
+  await options.nth(1).click();
+  await submit.click();
+  await expect(feedback).toContainText(/correct/i);
+  await expect(feedback).toHaveAttribute('aria-live', 'polite');
+});
+
 test('timeline supports click, keyboard selection, and completion updates', async ({ page }) => {
   const frame = await openComponent(page, 'Vertical Step Timeline', 'Timelines');
   await page.getByRole('button', { name: 'Behavior' }).click();

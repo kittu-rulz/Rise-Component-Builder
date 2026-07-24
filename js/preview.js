@@ -712,7 +712,33 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       border-radius: 50%;
       background-color: #FFFFFF;
     }
-    
+
+    .option-check-square {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      border: 2px solid var(--text-muted);
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .quiz-option.selected .option-check-square {
+      border-color: var(--accent);
+      background-color: var(--accent);
+    }
+
+    .quiz-option.selected .option-check-square::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 5px;
+      width: 4px;
+      height: 8px;
+      border: solid #FFFFFF;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
     .option-text {
       font-size: 13px;
       font-weight: 500;
@@ -2235,6 +2261,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
 
     // 2. Quiz trigger
     var selectedOptionIndex = null;
+    var selectedOptionIndices = new Set();
     var quizOptions = ${serializeForInlineScript(c.items)};
 
     function selectQuizOption(index, element) {
@@ -2257,18 +2284,58 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
         feedback.innerHTML = '<strong>Select an option first.</strong>';
         return;
       }
-      
+
       const selection = quizOptions[selectedOptionIndex];
       const isCorrect = selection.correct;
-      
+
       feedback.style.display = 'block';
       feedback.className = 'quiz-feedback ' + (isCorrect ? 'correct' : 'wrong');
-      
+
       if (isCorrect) {
         feedback.innerHTML = '<strong>Correct!</strong> ' + (selection.content || 'Excellent choices.');
         updateTrackerComplete();
       } else {
         feedback.innerHTML = '<strong>Incorrect.</strong> Try reviewing the source documentation again.';
+      }
+    }
+
+    function toggleQuizOption(index, element) {
+      const checked = element.getAttribute('aria-checked') === 'true';
+      if (checked) {
+        element.classList.remove('selected');
+        element.setAttribute('aria-checked', 'false');
+        selectedOptionIndices.delete(index);
+      } else {
+        element.classList.add('selected');
+        element.setAttribute('aria-checked', 'true');
+        selectedOptionIndices.add(index);
+      }
+    }
+
+    function submitMultiQuiz() {
+      const feedback = document.getElementById('quiz-feedback-box');
+      if (selectedOptionIndices.size === 0) {
+        feedback.style.display = 'block';
+        feedback.className = 'quiz-feedback wrong';
+        feedback.innerHTML = '<strong>Select at least one option.</strong>';
+        return;
+      }
+
+      const correctIndices = new Set(quizOptions.reduce((indices, option, index) => {
+        if (option.correct) indices.push(index);
+        return indices;
+      }, []));
+      const isCorrect = selectedOptionIndices.size === correctIndices.size
+        && Array.from(selectedOptionIndices).every(index => correctIndices.has(index));
+
+      feedback.style.display = 'block';
+      feedback.className = 'quiz-feedback ' + (isCorrect ? 'correct' : 'wrong');
+
+      if (isCorrect) {
+        feedback.innerHTML = '<strong>Correct!</strong> You selected all the right answers.';
+        updateTrackerComplete();
+      } else {
+        feedback.innerHTML = '<strong>Incorrect.</strong> Review your selections and try again.';
       }
     }
 
@@ -2714,12 +2781,12 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
         });
       });
 
-      document.querySelectorAll('.quiz-block .quiz-option').forEach(function(option) {
+      document.querySelectorAll('.quiz-block .quiz-option[role="radio"]').forEach(function(option) {
         option.addEventListener('click', function() {
           selectQuizOption(parseInt(option.getAttribute('data-idx'), 10), option);
         });
         option.addEventListener('keydown', function(event) {
-          const options = Array.from(document.querySelectorAll('.quiz-block .quiz-option'));
+          const options = Array.from(document.querySelectorAll('.quiz-block .quiz-option[role="radio"]'));
           const current = options.indexOf(option);
           let next = current;
           if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (current + 1) % options.length;
@@ -2737,8 +2804,36 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
         });
       });
 
+      document.querySelectorAll('.quiz-block .quiz-option[role="checkbox"]').forEach(function(option) {
+        option.addEventListener('click', function() {
+          toggleQuizOption(parseInt(option.getAttribute('data-idx'), 10), option);
+        });
+        option.addEventListener('keydown', function(event) {
+          const options = Array.from(document.querySelectorAll('.quiz-block .quiz-option[role="checkbox"]'));
+          const current = options.indexOf(option);
+          let next = current;
+          if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (current + 1) % options.length;
+          else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (current - 1 + options.length) % options.length;
+          else if (event.key === 'Home') next = 0;
+          else if (event.key === 'End') next = options.length - 1;
+          else if (event.key === ' ' || event.key === 'Enter') {
+            event.preventDefault();
+            toggleQuizOption(current, option);
+            return;
+          } else return;
+          event.preventDefault();
+          option.setAttribute('tabindex', '-1');
+          options[next].setAttribute('tabindex', '0');
+          options[next].focus();
+        });
+      });
+
       var quizSubmitBtn = document.querySelector('.quiz-block .quiz-submit-btn');
-      if (quizSubmitBtn) quizSubmitBtn.addEventListener('click', submitQuiz);
+      if (quizSubmitBtn) {
+        quizSubmitBtn.addEventListener('click', function() {
+          if (quizSubmitBtn.dataset.quizMode === 'multi') submitMultiQuiz(); else submitQuiz();
+        });
+      }
 
       document.querySelectorAll('.flip-card').forEach(function(card, idx) {
         card.addEventListener('click', function() {

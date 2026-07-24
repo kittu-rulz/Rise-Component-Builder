@@ -10,7 +10,7 @@ Only confirmed or directly observable implementation limitations are listed here
 
 ## Coupling and duplication
 
-- Only Accordion, Tabs, Flip Cards, Vertical Timeline, and Multiple Choice are separate component modules.
+- Only Accordion, Tabs, Flip Cards, Vertical Timeline, Multiple Choice, and Multiple Select are separate component modules.
 - Remaining generator markup, styles, and interaction logic are concentrated in the large `js/preview.js` file.
 - Remaining component sample/default data is selected through a long conditional in `app.js`.
 - Shared interaction CSS and component-specific CSS are emitted from one preview template, so a change can affect unrelated generated components.
@@ -23,7 +23,7 @@ Only confirmed or directly observable implementation limitations are listed here
 - Projects, drafts, favorites, settings, custom themes, the default component theme, and UI mode are persisted in localStorage only. There is no server synchronization or multi-user support.
 - Project schema version 2 validates theme snapshots and overrides and migrates version-1 projects, but it has no component-specific migration or deep schema validation.
 - Renaming and creating custom themes, and confirming project/theme deletion, use in-app modal dialogs (`#modal-prompt`, `#modal-confirm`) rather than the browser's native `prompt`/`confirm`; results and errors use reusable toasts.
-- Inline editor errors are rendered, and preview updates continue live regardless; clicking Save re-validates all required schema fields, `minItems`, and (for the five modular components) their `validate()` contract, and blocks saving with a toast naming the first failing field until it is fixed. Legacy components without a `validate()` contract are only checked at the field level.
+- Inline editor errors are rendered, and preview updates continue live regardless; clicking Save re-validates all required schema fields, `minItems`, and (for the six modular components) their `validate()` contract, and blocks saving with a toast naming the first failing field until it is fixed. Legacy components without a `validate()` contract are only checked at the field level.
 - Importing a project creates a new project identity, but external resources referenced by its URLs are not copied or verified.
 
 ## Media limitations
@@ -69,5 +69,5 @@ Only confirmed or directly observable implementation limitations are listed here
 - One test (`flip-card custom artwork uploads per face and removal restores the built-in icon`) is skipped on WebKit: Playwright's bundled WebKit build on Windows cannot store a `Blob` in IndexedDB at all in this environment (reproduced with zero application code — a bare `indexedDB.open(...).put({ blob })` fails with `"Error preparing Blob/File data to be stored in object store"`). This is a Playwright/WebKit-on-Windows test-environment limitation, not an app defect; real Safari is unaffected.
 - Firefox and WebKit don't support Playwright's `clipboard-read`/`clipboard-write` permission grants (a Chromium-only CDP permission). The export copy-to-clipboard test verifies the visible success state (button text/class, toast) on all three engines, but only reads back the actual clipboard contents on Chromium.
 - Automated E2E tests use a local static server, not Articulate Rise, Moodle, an LMS, or a production CSP/hosting configuration.
-- Unit coverage gates apply to state, persistence, themes, utilities, and the five modular generators. The large legacy preview compiler is exercised through integration and browser tests rather than included in the unit percentage.
+- Unit coverage gates apply to state, persistence, themes, utilities, and the six modular generators. The large legacy preview compiler is exercised through integration and browser tests rather than included in the unit percentage.
 - No pixel-diff snapshots are maintained; visual regressions still require design review at representative viewport sizes.

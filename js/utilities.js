@@ -232,7 +232,7 @@ export function sanitizePreviewConfig(config, componentId) {
     const safeItem = { ...item };
     if (contentURLTypes[componentId]) safeItem.content = sanitizeURL(item.content, contentURLTypes[componentId]);
     else safeItem.content = sanitizeRichText(item.content);
-    if (componentId === 'multiple-choice') safeItem.label = sanitizeRichText(item.label);
+    if (componentId === 'multiple-choice' || componentId === 'multiple-select') safeItem.label = sanitizeRichText(item.label);
     if (componentId === 'fill-blank') safeItem.title = sanitizeRichText(item.title);
     if (item.image !== undefined) safeItem.image = sanitizeURL(item.image, { allowDataImage: true, allowBlob: true, allowRelative: true });
     if (item.iconImage !== undefined) safeItem.iconImage = sanitizeURL(item.iconImage, { allowDataImage: true, allowBlob: true, allowRelative: true });

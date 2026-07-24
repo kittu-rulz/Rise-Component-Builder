@@ -66,6 +66,14 @@ export const editorSchemas = {
       field('correct', 'Correct Answer', 'radio', { default: false, groupAcrossItems: true, requiredOne: true })
     ]
   },
+  'multiple-select': {
+    itemLabel: 'Answer Option', minItems: 2,
+    itemFields: [
+      field('label', 'Answer Option', 'richtext', { required: true, default: 'New option' }),
+      field('content', 'Answer Feedback', 'textarea', { required: false, default: 'Add feedback for this option.' }),
+      field('correct', 'Correct Answer', 'checkbox', { default: false })
+    ]
+  },
   'sorting-activity': {
     itemLabel: 'Sortable Item', minItems: 2,
     itemFields: [

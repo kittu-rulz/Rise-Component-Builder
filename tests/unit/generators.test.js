@@ -5,12 +5,14 @@ import * as tabs from '../../components/tabs.js';
 import * as flipCards from '../../components/flip-cards.js';
 import * as verticalTimeline from '../../components/vertical-timeline.js';
 import * as multipleChoice from '../../components/multiple-choice.js';
+import * as multipleSelect from '../../components/multiple-select.js';
 import { invalidUrls, longText, multilingualText, rtlText, unsafeText } from '../fixtures/index.js';
 
-const generators = [accordion, tabs, flipCards, verticalTimeline, multipleChoice];
+const generators = [accordion, tabs, flipCards, verticalTimeline, multipleChoice, multipleSelect];
+const answerOptionComponents = ['multiple-choice', 'multiple-select'];
 
 function itemsFor(component, count, content = 'Description') {
-  return Array.from({ length: count }, (_, index) => component.id === 'multiple-choice'
+  return Array.from({ length: count }, (_, index) => answerOptionComponents.includes(component.id)
     ? { label: `Option ${index + 1}`, content, correct: index === 0 }
     : { title: `Item ${index + 1}`, content });
 }
@@ -58,14 +60,14 @@ describe.each(generators)('$name generator', component => {
     ['very long text', longText], ['emoji and multilingual text', multilingualText], ['right-to-left text', rtlText],
     ['quotes and apostrophes', `She said "hello" and it's safe.`], ['closing scripts and unsafe markup', unsafeText]
   ])('handles %s safely', (_label, content) => {
-    const html = assertSafeOutput(component, { ...component.defaultConfig, items: itemsFor(component, component.id === 'multiple-choice' ? 2 : 1, content) });
+    const html = assertSafeOutput(component, { ...component.defaultConfig, items: itemsFor(component, answerOptionComponents.includes(component.id) ? 2 : 1, content) });
     expect(html.toLowerCase()).not.toContain('<script>');
     const document = new JSDOM(`<!doctype html><body>${html}</body>`).window.document;
     expect(document.querySelector('script, [onerror]')).toBeNull();
   });
 
   test.each(invalidUrls)('rejects unsafe URL-like authored content: %s', url => {
-    const html = assertSafeOutput(component, { ...component.defaultConfig, items: itemsFor(component, component.id === 'multiple-choice' ? 2 : 1, `<a href="${url}">link</a>`) });
+    const html = assertSafeOutput(component, { ...component.defaultConfig, items: itemsFor(component, answerOptionComponents.includes(component.id) ? 2 : 1, `<a href="${url}">link</a>`) });
     expect(html.toLowerCase()).not.toContain(url.toLowerCase());
   });
 });
