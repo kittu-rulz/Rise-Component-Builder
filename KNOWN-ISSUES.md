@@ -58,13 +58,15 @@ Only confirmed or directly observable implementation limitations are listed here
 
 ## Large-file handling
 
-- Default file-size limits are enforced in code but are not yet exposed as application settings.
-- IndexedDB writes and browser metadata parsing still require the browser to hold selected file data temporarily; files near the 100 MB video limit can cause memory pressure on constrained devices.
+- Per-type media upload size limits (image, audio, video, SVG) are configurable in Builder Settings and persisted in `settings.mediaLimitsMb`; each is clamped to a safe range (e.g. image 1-50 MB, video 1-500 MB) and invalid values silently fall back to the built-in default rather than rejecting the save. The captions (WebVTT) limit is fixed at 2 MB and is not configurable, since caption files are always small text.
+- IndexedDB writes and browser metadata parsing still require the browser to hold selected file data temporarily; files near the configured video limit (100 MB by default) can cause memory pressure on constrained devices.
 - The sidebar storage meter uses `navigator.storage.estimate()`, which reports the browser's whole-origin quota usage (localStorage plus IndexedDB) rather than an exact application-level breakdown; it also falls back to "Usage unavailable" in browsers without the Storage API.
 
 ## Test coverage limitations
 
-- Chromium is the only automated browser project. Firefox, WebKit, mobile Safari behavior, and real touch/assistive-technology combinations are not automated.
+- Chromium, Firefox, and desktop WebKit are automated Playwright projects. Mobile Safari behavior and real touch/assistive-technology combinations are not automated.
+- One test (`flip-card custom artwork uploads per face and removal restores the built-in icon`) is skipped on WebKit: Playwright's bundled WebKit build on Windows cannot store a `Blob` in IndexedDB at all in this environment (reproduced with zero application code — a bare `indexedDB.open(...).put({ blob })` fails with `"Error preparing Blob/File data to be stored in object store"`). This is a Playwright/WebKit-on-Windows test-environment limitation, not an app defect; real Safari is unaffected.
+- Firefox and WebKit don't support Playwright's `clipboard-read`/`clipboard-write` permission grants (a Chromium-only CDP permission). The export copy-to-clipboard test verifies the visible success state (button text/class, toast) on all three engines, but only reads back the actual clipboard contents on Chromium.
 - Automated E2E tests use a local static server, not Articulate Rise, Moodle, an LMS, or a production CSP/hosting configuration.
 - Unit coverage gates apply to state, persistence, themes, utilities, and the five modular generators. The large legacy preview compiler is exercised through integration and browser tests rather than included in the unit percentage.
 - No pixel-diff snapshots are maintained; visual regressions still require design review at representative viewport sizes.

@@ -127,8 +127,15 @@ test('export contains selected content and theme, excludes unsafe executable mar
   expect(errors).toEqual([]);
 });
 
-test('export copy button copies iframe code and shows visible confirmation', async ({ page, context }) => {
-  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4173' });
+test('export copy button copies iframe code and shows visible confirmation', async ({ page, context, browserName }) => {
+  // Firefox/WebKit don't support granting the 'clipboard-read'/'clipboard-write'
+  // permissions through Playwright (Chromium-only CDP permissions), but the
+  // app's own execCommand fallback (js/utilities.js) copies without needing
+  // them, so the copy still works there — only the clipboard-content readback
+  // below is Chromium-only.
+  if (browserName === 'chromium') {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: 'http://127.0.0.1:4173' });
+  }
   await openAccordion(page);
   await page.locator('#btn-export').click();
 
@@ -142,5 +149,8 @@ test('export copy button copies iframe code and shows visible confirmation', asy
   await expect(copyButton).toHaveText('Copied!');
   await expect(copyButton).toHaveClass(/copy-success/);
   await expect(page.locator('.toast')).toContainText('Code copied to the clipboard.');
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expectedCode);
+
+  if (browserName === 'chromium') {
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expectedCode);
+  }
 });

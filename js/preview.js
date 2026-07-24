@@ -764,7 +764,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       perspective: 1000px;
       cursor: pointer;
     }
-    
+
     .flip-card-inner {
       position: relative;
       width: 100%;
@@ -773,7 +773,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
       transform-style: preserve-3d;
     }
-    
+
     .flip-card.flipped .flip-card-inner {
       transform: rotateY(180deg);
     }

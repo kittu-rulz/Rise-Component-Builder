@@ -97,7 +97,13 @@ test('builder modal traps focus while open', async ({ page }) => {
 
 test('closing a builder modal restores focus to its trigger', async ({ page }) => {
   await page.goto('/');
-  await page.locator('#btn-settings').click();
+  // Focus the trigger via keyboard rather than a mouse click: WebKit does not
+  // give a button keyboard focus on click (matching real Safari behavior),
+  // so a mouse click alone can't meaningfully exercise focus restoration
+  // there. Tab+Enter reflects how an actual keyboard/AT user would trigger
+  // this and behaves consistently across all three engines.
+  await page.locator('#btn-settings').focus();
+  await page.keyboard.press('Enter');
   await expect(page.locator('#modal-settings')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.locator('#modal-settings')).toBeHidden();

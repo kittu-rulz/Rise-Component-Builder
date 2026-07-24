@@ -40,15 +40,23 @@ describe('versioned project persistence', () => {
   });
 
   test('settings, favorites, themes, and drafts survive serialization', () => {
-    saveSettings({ defaultFont: 'Roboto', exportFormat: 'zip', autosave: false, aiEnabled: true });
+    saveSettings({ defaultFont: 'Roboto', exportFormat: 'zip', autosave: false, aiEnabled: true, mediaLimitsMb: { image: 5, audio: 20, video: 50, svg: 1 } });
     saveFavorites(new Set(['accordion', 'tab-blocks']));
     saveDraft(validProject({ uiTheme: 'dark' }));
-    expect(loadSettings()).toEqual({ defaultFont: 'Roboto', exportFormat: 'zip', autosave: false, aiEnabled: true });
+    expect(loadSettings()).toEqual({
+      defaultFont: 'Roboto', exportFormat: 'zip', autosave: false, aiEnabled: true,
+      mediaLimitsMb: { image: 5, audio: 20, video: 50, svg: 1 }
+    });
     expect(loadFavorites()).toEqual(['accordion', 'tab-blocks']);
     expect(loadDraft().theme.id).toBe(cleanTheme.id);
     expect(loadDraft().uiTheme).toBe('dark');
     clearDraft();
     expect(loadDraft()).toBeNull();
+  });
+
+  test('media size limit settings are clamped to safe bounds and invalid values fall back to defaults', () => {
+    saveSettings({ mediaLimitsMb: { image: 0, audio: 999, video: 40, svg: 'not-a-number' } });
+    expect(loadSettings().mediaLimitsMb).toEqual({ image: 10, audio: 30, video: 40, svg: 2 });
   });
 
   test('media references remain JSON-safe when projects are reopened', () => {

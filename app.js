@@ -13,7 +13,7 @@ import { writePreview, openPreview, generateIframeContent as compilePreview } fr
 import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, prepareMediaExport } from './js/export.js';
 import { copyTextToClipboard, toRgba as colorToRgba } from './js/utilities.js';
 import { showToast } from './js/toast.js';
-import { validateMediaAccessibility } from './js/media.js';
+import { resolveMediaLimits, validateMediaAccessibility } from './js/media.js';
 import { pruneMediaObjectURLs, releaseAllMediaObjectURLs, restoreMediaReferences } from './js/media-storage.js';
 import {
   applyThemeToConfig, BUILT_IN_THEMES, createThemeFromCurrentStyling, DEFAULT_THEME_ID,
@@ -815,7 +815,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderDynamicItems() {
     const schema = appState.selectedComponent?.editorSchema || componentCatalog[0].editorSchema;
-    schemaItemEditor.render({ schema, items: appState.config.items, config: appState.config });
+    schemaItemEditor.render({ schema, items: appState.config.items, config: appState.config, limits: resolveMediaLimits(appState.settings.mediaLimitsMb) });
   }
 
   btnAddItem.addEventListener('click', () => {
@@ -1004,6 +1004,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('settings-export-format').value = appState.settings.exportFormat;
     document.getElementById('settings-enable-autosave').checked = appState.settings.autosave;
     document.getElementById('settings-enable-ai').checked = appState.settings.aiEnabled;
+    document.getElementById('settings-limit-image').value = appState.settings.mediaLimitsMb.image;
+    document.getElementById('settings-limit-audio').value = appState.settings.mediaLimitsMb.audio;
+    document.getElementById('settings-limit-video').value = appState.settings.mediaLimitsMb.video;
+    document.getElementById('settings-limit-svg').value = appState.settings.mediaLimitsMb.svg;
   }
 
   function syncEditorControls() {
@@ -1319,18 +1323,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       const selectExport = document.getElementById('settings-export-format');
       const checkAutosave = document.getElementById('settings-enable-autosave');
       const checkAi = document.getElementById('settings-enable-ai');
-      
+      const limitImage = document.getElementById('settings-limit-image');
+      const limitAudio = document.getElementById('settings-limit-audio');
+      const limitVideo = document.getElementById('settings-limit-video');
+      const limitSvg = document.getElementById('settings-limit-svg');
+
       try {
         appState.settings = saveSettings({
           defaultFont: selectFont.value,
           exportFormat: selectExport.value,
           autosave: checkAutosave.checked,
-          aiEnabled: checkAi.checked
+          aiEnabled: checkAi.checked,
+          mediaLimitsMb: {
+            image: Number(limitImage.value),
+            audio: Number(limitAudio.value),
+            video: Number(limitVideo.value),
+            svg: Number(limitSvg.value)
+          }
         });
+        syncSettingsControls();
         if (!appState.settings.autosave) clearDraft();
         else saveCurrentDraft();
         showToast('Settings applied successfully.', 'success');
         closeModal('modal-settings');
+        renderDynamicItems();
         updateLivePreview();
       } catch (error) {
         showToast(error.message, 'error', 5000);

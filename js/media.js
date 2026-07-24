@@ -10,6 +10,18 @@ export const MEDIA_LIMITS = Object.freeze({
 
 export const SMALL_IMAGE_INLINE_LIMIT = 1024 * 1024;
 
+export function resolveMediaLimits(mediaLimitsMb) {
+  if (!mediaLimitsMb) return MEDIA_LIMITS;
+  const toBytes = (mb, fallback) => Number.isFinite(mb) && mb > 0 ? Math.round(mb * 1024 * 1024) : fallback;
+  return {
+    image: toBytes(mediaLimitsMb.image, MEDIA_LIMITS.image),
+    audio: toBytes(mediaLimitsMb.audio, MEDIA_LIMITS.audio),
+    video: toBytes(mediaLimitsMb.video, MEDIA_LIMITS.video),
+    svg: toBytes(mediaLimitsMb.svg, MEDIA_LIMITS.svg),
+    captions: MEDIA_LIMITS.captions
+  };
+}
+
 const TYPE_RULES = Object.freeze({
   image: {
     jpg: ['image/jpeg'], jpeg: ['image/jpeg'], png: ['image/png'], webp: ['image/webp'],
@@ -109,11 +121,15 @@ export async function prepareMediaFile(file, kind, options = {}) {
     throw new Error(`The contents of ${file.name} do not match its declared file type.`);
   }
 
-  let blob = file;
+  let blob;
   if (validation.extension === 'svg') {
     const result = sanitizeSVGText(await file.text());
     if (!result.valid) throw new Error(result.error);
     blob = new Blob([result.sanitized], { type: 'image/svg+xml' });
+  } else {
+    // Some browsers (WebKit) fail to structured-clone a File object into
+    // IndexedDB; storing a plain Blob copy avoids that failure everywhere.
+    blob = new Blob([file], { type: file.type });
   }
 
   const now = new Date().toISOString();

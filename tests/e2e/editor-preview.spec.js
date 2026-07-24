@@ -99,12 +99,18 @@ test('pop-out preview opens where browser permissions permit', async ({ page }) 
   await popup.close();
 });
 
-test('flip-card custom artwork uploads per face and removal restores the built-in icon', async ({ page }) => {
+test('flip-card custom artwork uploads per face and removal restores the built-in icon', async ({ page, browserName }) => {
+  // Playwright's bundled WebKit build on Windows cannot structured-clone a
+  // Blob into IndexedDB at all (reproduced with zero app code: a bare
+  // `indexedDB.open(...).put({ blob })` fails with "Error preparing
+  // Blob/File data to be stored in object store"). This is a platform/test
+  // environment limitation, not an app bug — real Safari is unaffected.
+  test.skip(browserName === 'webkit', 'WebKit-on-Windows cannot store Blobs in IndexedDB in this test environment.');
   await page.locator('#btn-back-to-catalog').click();
   await page.locator('.component-select-card').filter({ hasText: '3D Flip Cards' }).click();
   const iconField = page.locator('#schema-0-iconImage').locator('xpath=ancestor::div[contains(@class,"schema-field")]');
   await expect(iconField.locator('.media-upload-guidance')).toHaveText(
-    'Supported formats: JPG, JPEG, PNG, WebP, SVG, GIF. Preferred dimensions: 256 × 256 px (square). Maximum file size: 10 MB; SVG: 2 MB.'
+    'Supported formats: JPG, JPEG, PNG, WebP, SVG, GIF. Preferred dimensions: 256 × 256 px (square). Maximum file size: 10.0 MB; SVG: 2.0 MB.'
   );
   await expect(page.locator('#schema-0-iconImage')).toHaveAttribute('aria-describedby', /schema-0-iconImage-guidance/);
   await iconField.locator('input[type="file"]').setInputFiles({
@@ -118,4 +124,27 @@ test('flip-card custom artwork uploads per face and removal restores the built-i
   await iconField.getByRole('button', { name: 'Remove file' }).click();
   await expect(front.locator('img.custom-item-icon')).toHaveCount(0);
   await expect(front.locator('.card-icon-badge svg')).toBeVisible();
+});
+
+test('media size-limit settings enforce a configurable maximum on image uploads', async ({ page }) => {
+  await page.locator('#btn-settings').click();
+  await page.locator('#settings-limit-image').fill('1');
+  await page.locator('#btn-save-settings').click();
+  await expect(page.locator('#modal-settings')).toBeHidden();
+
+  await page.locator('#btn-back-to-catalog').click();
+  await page.locator('.component-select-card').filter({ hasText: '3D Flip Cards' }).click();
+  const iconField = page.locator('#schema-0-iconImage').locator('xpath=ancestor::div[contains(@class,"schema-field")]');
+  await expect(iconField.locator('.media-upload-guidance')).toContainText('Maximum file size: 1.0 MB');
+
+  const oversized = Buffer.concat([
+    Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+    Buffer.alloc(2 * 1024 * 1024)
+  ]);
+  await iconField.locator('input[type="file"]').setInputFiles({ name: 'too-big.png', mimeType: 'image/png', buffer: oversized });
+  await expect(iconField.locator('.media-upload-error')).toContainText(/exceeds the 1\.0 MB image limit/i);
+
+  await page.reload();
+  await page.locator('#btn-settings').click();
+  await expect(page.locator('#settings-limit-image')).toHaveValue('1');
 });

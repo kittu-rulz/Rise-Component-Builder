@@ -1,4 +1,4 @@
-import { formatFileSize, isMediaReference, prepareMediaFile } from './media.js';
+import { formatFileSize, isMediaReference, MEDIA_LIMITS, prepareMediaFile } from './media.js';
 import { ensureMediaObjectURL, peekMediaObjectURL, saveMediaRecord } from './media-storage.js';
 
 const ACCEPT = Object.freeze({
@@ -63,7 +63,9 @@ export function createMediaUploadControl({
   guidance.id = `${controlId}-guidance`;
   if (kind === 'image') {
     const preferred = field.preferredDimensions || '1200 × 900 px or larger';
-    guidance.textContent = `Supported formats: JPG, JPEG, PNG, WebP, SVG, GIF. Preferred dimensions: ${preferred}. Maximum file size: 10 MB; SVG: 2 MB.`;
+    const imageLimit = formatFileSize((limits || MEDIA_LIMITS).image);
+    const svgLimit = formatFileSize((limits || MEDIA_LIMITS).svg);
+    guidance.textContent = `Supported formats: JPG, JPEG, PNG, WebP, SVG, GIF. Preferred dimensions: ${preferred}. Maximum file size: ${imageLimit}; SVG: ${svgLimit}.`;
     urlInput.dataset.guidanceId = guidance.id;
   } else {
     guidance.hidden = true;

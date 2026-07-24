@@ -632,6 +632,24 @@
           </select>
         </div>
 
+        <div class="group-title">Media Upload Limits (MB)</div>
+        <div class="input-wrapper">
+          <label for="settings-limit-image">Image Max Size (MB)</label>
+          <input type="number" id="settings-limit-image" min="1" max="50" step="1">
+        </div>
+        <div class="input-wrapper">
+          <label for="settings-limit-audio">Audio Max Size (MB)</label>
+          <input type="number" id="settings-limit-audio" min="1" max="150" step="1">
+        </div>
+        <div class="input-wrapper">
+          <label for="settings-limit-video">Video Max Size (MB)</label>
+          <input type="number" id="settings-limit-video" min="1" max="500" step="1">
+        </div>
+        <div class="input-wrapper">
+          <label for="settings-limit-svg">SVG Max Size (MB)</label>
+          <input type="number" id="settings-limit-svg" min="1" max="20" step="1">
+        </div>
+
         <div class="checkbox-wrapper">
           <input type="checkbox" id="settings-enable-autosave" checked>
           <label for="settings-enable-autosave">Enable automatic local backup every 60 seconds</label>

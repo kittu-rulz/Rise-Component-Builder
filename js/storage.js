@@ -19,8 +19,25 @@ const DEFAULT_SETTINGS = {
   defaultFont: 'Lato',
   exportFormat: 'web',
   autosave: true,
-  aiEnabled: false
+  aiEnabled: false,
+  mediaLimitsMb: { image: 10, audio: 30, video: 100, svg: 2 }
 };
+
+export const MEDIA_LIMIT_BOUNDS_MB = {
+  image: [1, 50],
+  audio: [1, 150],
+  video: [1, 500],
+  svg: [1, 20]
+};
+
+function normalizeMediaLimitsMb(value) {
+  const source = isObject(value) ? value : {};
+  return Object.fromEntries(Object.entries(MEDIA_LIMIT_BOUNDS_MB).map(([key, [min, max]]) => {
+    const num = Number(source[key]);
+    const valid = Number.isFinite(num) && num >= min && num <= max;
+    return [key, valid ? Math.round(num) : DEFAULT_SETTINGS.mediaLimitsMb[key]];
+  }));
+}
 
 const isObject = value => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 const isPlainObject = value => isObject(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
@@ -68,7 +85,8 @@ export function normalizeSettings(value) {
     defaultFont: allowedFonts.includes(value.defaultFont) ? value.defaultFont : DEFAULT_SETTINGS.defaultFont,
     exportFormat: ['web', 'zip', 'scorm'].includes(value.exportFormat) ? value.exportFormat : DEFAULT_SETTINGS.exportFormat,
     autosave: typeof value.autosave === 'boolean' ? value.autosave : DEFAULT_SETTINGS.autosave,
-    aiEnabled: typeof value.aiEnabled === 'boolean' ? value.aiEnabled : DEFAULT_SETTINGS.aiEnabled
+    aiEnabled: typeof value.aiEnabled === 'boolean' ? value.aiEnabled : DEFAULT_SETTINGS.aiEnabled,
+    mediaLimitsMb: normalizeMediaLimitsMb(value.mediaLimitsMb)
   };
 }
 

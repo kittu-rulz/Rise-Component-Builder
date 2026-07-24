@@ -27,8 +27,8 @@ jobs:
       - name: Enforce coverage thresholds
         run: npm run test:coverage
 
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
 
       - name: Run browser and accessibility tests
         run: npm run test:e2e

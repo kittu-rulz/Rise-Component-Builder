@@ -135,7 +135,7 @@ export function createSchemaItemEditor({ container, onChange }) {
     });
   }
 
-  function appendField({ field, model, items, schema, indexKey, target, onMultiple }) {
+  function appendField({ field, model, items, schema, indexKey, target, onMultiple, limits }) {
     if (!supportedEditorFieldTypes.includes(field.type)) return;
     const wrapper = document.createElement('div');
     wrapper.className = `input-wrapper schema-field schema-field-${field.type}`;
@@ -171,7 +171,7 @@ export function createSchemaItemEditor({ container, onChange }) {
     if (['image', 'audio', 'video'].includes(field.type) || field.uploadKind) {
       let media;
       media = createMediaUploadControl({
-        field, controlId, value: model[field.id],
+        field, controlId, value: model[field.id], limits,
         onChange: value => {
           model[`${field.id}Duration`] = isMediaReference(value) && Number.isFinite(value.duration) ? value.duration : null;
           updateValue(value, media.validationControl);
@@ -237,8 +237,8 @@ export function createSchemaItemEditor({ container, onChange }) {
   }
 
   let lastRender = null;
-  function render({ schema, items, config = {} }) {
-    lastRender = { schema, items, config };
+  function render({ schema, items, config = {}, limits }) {
+    lastRender = { schema, items, config, limits };
     fieldRegistry = [];
     container.innerHTML = '';
 
@@ -250,7 +250,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       title.textContent = schema.componentLabel || 'Component media';
       const body = document.createElement('div');
       body.className = 'item-card-body';
-      schema.componentFields.forEach(field => appendField({ field, model: config, items, schema, indexKey: 'component', target: body }));
+      schema.componentFields.forEach(field => appendField({ field, model: config, items, schema, indexKey: 'component', target: body, limits }));
       componentCard.append(title, body);
       container.appendChild(componentCard);
     }
@@ -283,7 +283,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       heading.setAttribute('aria-expanded', String(!collapsed));
       heading.addEventListener('click', () => {
         if (collapsed) collapsedItems.delete(item); else collapsedItems.add(item);
-        render({ schema, items, config });
+        render(lastRender);
       });
 
       const actions = document.createElement('div');
@@ -300,19 +300,19 @@ export function createSchemaItemEditor({ container, onChange }) {
         actions.appendChild(button);
       };
       addButton('⠿', 'Drag to reorder', event => event.preventDefault());
-      addButton('↑', 'Move item up', () => move(index, index - 1, schema, items, config), index === 0);
-      addButton('↓', 'Move item down', () => move(index, index + 1, schema, items, config), index === items.length - 1);
+      addButton('↑', 'Move item up', () => move(index, index - 1), index === 0);
+      addButton('↓', 'Move item down', () => move(index, index + 1), index === items.length - 1);
       addButton('⧉', 'Duplicate item', () => {
         const duplicate = structuredClone(item);
         schema.itemFields.filter(field => field.groupAcrossItems).forEach(field => { duplicate[field.id] = false; });
         items.splice(index + 1, 0, duplicate);
         onChange();
-        render({ schema, items, config });
+        render(lastRender);
       });
       addButton('×', 'Delete item', () => {
         items.splice(index, 1);
         onChange();
-        render({ schema, items, config });
+        render(lastRender);
       });
       header.append(heading, actions);
       card.appendChild(header);
@@ -322,7 +322,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       if (!collapsed) {
         schema.itemFields.forEach(field => {
           appendField({
-            field, model: item, items, schema, indexKey: index, target: body,
+            field, model: item, items, schema, indexKey: index, target: body, limits,
             onMultiple: references => {
               item[field.id] = references[0];
               item[`${field.id}Duration`] = Number.isFinite(references[0]?.duration) ? references[0].duration : null;
@@ -333,7 +333,7 @@ export function createSchemaItemEditor({ container, onChange }) {
                 if ('title' in newItem) newItem.title = reference.name.replace(/\.[^.]+$/, '');
                 items.splice(index + 1 + offset, 0, newItem);
               });
-              render({ schema, items, config });
+              render(lastRender);
             }
           });
         });
@@ -348,19 +348,20 @@ export function createSchemaItemEditor({ container, onChange }) {
       card.addEventListener('dragover', event => { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; });
       card.addEventListener('drop', event => {
         event.preventDefault();
-        if (draggedIndex !== null && draggedIndex !== index) move(draggedIndex, index, schema, items, config);
+        if (draggedIndex !== null && draggedIndex !== index) move(draggedIndex, index);
       });
       card.addEventListener('dragend', () => { draggedIndex = null; card.classList.remove('dragging'); });
       container.appendChild(card);
     });
   }
 
-  function move(from, to, schema, items, config) {
+  function move(from, to) {
+    const { items } = lastRender;
     if (to < 0 || to >= items.length || from === to) return;
     const [item] = items.splice(from, 1);
     items.splice(to, 0, item);
     onChange();
-    render({ schema, items, config });
+    render(lastRender);
   }
 
   return { render };
