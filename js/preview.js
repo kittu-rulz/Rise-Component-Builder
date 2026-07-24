@@ -659,7 +659,13 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       flex-direction: column;
       gap: 10px;
     }
-    
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
     .quiz-option {
       background-color: var(--bg-card);
       border: var(--border-style);
