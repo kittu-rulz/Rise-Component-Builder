@@ -14,13 +14,13 @@ Inspected: `app.js`, `index.html`, `styles.css`, every file in `js/`, every file
 
 Commands executed (exact, from repo root):
 
-| Command | Result | Notes |
-|---|---|---|
-| `npm run test:unit` (`vitest run`) | **Pass** — 8 files, 139 tests, 0 failures, 18.81s | Confirmed |
-| `npm run test:coverage` (`vitest run --coverage`) | **Pass** — 139 tests, 0 failures. Coverage: 86.2% stmts / 73.12% branch / 94.92% funcs / 96.08% lines (all ≥ configured thresholds of 70/60/70/70) | Confirmed |
-| `npm run test:e2e` (`playwright test`, Chromium+Firefox+WebKit) | **116 passed, 12 failed, 1 skipped** (9.8 min) | All 12 failures are Firefox-only; see §9 |
-| Lint | **No lint command exists.** `package.json` defines no `lint` script, and no ESLint/Prettier config file is present anywhere in the repo. | Confirmed absence |
-| Build | **No build step exists.** This is a vanilla ES-module app with no bundler; `npm run dev` just serves the raw files via `http-server`. There is nothing to "build." | Confirmed — by design, not an oversight |
+| Command                                                         | Result                                                                                                                                                             | Notes                                    |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| `npm run test:unit` (`vitest run`)                              | **Pass** — 8 files, 139 tests, 0 failures, 18.81s                                                                                                                  | Confirmed                                |
+| `npm run test:coverage` (`vitest run --coverage`)               | **Pass** — 139 tests, 0 failures. Coverage: 86.2% stmts / 73.12% branch / 94.92% funcs / 96.08% lines (all ≥ configured thresholds of 70/60/70/70)                 | Confirmed                                |
+| `npm run test:e2e` (`playwright test`, Chromium+Firefox+WebKit) | **116 passed, 12 failed, 1 skipped** (9.8 min)                                                                                                                     | All 12 failures are Firefox-only; see §9 |
+| Lint                                                            | **No lint command exists.** `package.json` defines no `lint` script, and no ESLint/Prettier config file is present anywhere in the repo.                           | Confirmed absence                        |
+| Build                                                           | **No build step exists.** This is a vanilla ES-module app with no bundler; `npm run dev` just serves the raw files via `http-server`. There is nothing to "build." | Confirmed — by design, not an oversight  |
 
 All 12 e2e failures are `[firefox]` projects failing with `Test timeout of 30000ms exceeded` on `page.goto('/')` or during Playwright's page setup, i.e. Firefox never finished loading `http://127.0.0.1:4173/` inside this sandboxed shell within 30s. Chromium and WebKit ran their full suites with 0 failures. This matches the pattern the project's own `KNOWN-ISSUES.md`/`ARCHITECTURE.md` describe for browser-specific automation limitations in constrained environments (WebKit-on-Windows IndexedDB Blob limitation is the documented example; the Firefox timeout observed here is a new, previously undocumented instance of the same class of problem — environment/sandbox launch latency, not a reproduced application defect). **This should be re-run in an unrestricted environment (e.g. the project's own GitHub Actions runner) before being treated as either "fine" or "a real bug."** Flagged as Confirmed-observation / Assumption-about-cause.
 
@@ -64,11 +64,11 @@ All 12 e2e failures are `[firefox]` projects failing with `Test timeout of 30000
 **Confirmed:**
 
 - **AI Scenario Generator / AI Quiz Generator** (`ai-generator`, `ai-quiz-maker`) are local `setTimeout`-based simulations with hardcoded example output (`js/preview.js` around line 2800). No network call, no real AI service. This is honestly disclosed in `KNOWN-ISSUES.md` and the UI itself (per docs), not hidden.
-- **ZIP / SCORM export**: the button (`btn-download-zip`, `app.js:1455-1461`) only prepares an asset manifest and shows a warning toast — *"ZIP packaging is not implemented yet."* No archive is ever produced. `exportFormat` setting accepts `'zip'`/`'scorm'` values but nothing downstream acts on them differently.
-- **Standalone single-file HTML export** only inlines small raster images (≤1 MB, non-SVG) as data URLs; SVG, large images, audio, video, and captions are rewritten to `assets/...` relative paths that do not exist anywhere — the single-file download is *blocked* with a toast in that case (`app.js:1448`), which is correct/safe behavior but means the "self-contained HTML" promise only holds for image-light components.
+- **ZIP / SCORM export**: the button (`btn-download-zip`, `app.js:1455-1461`) only prepares an asset manifest and shows a warning toast — _"ZIP packaging is not implemented yet."_ No archive is ever produced. `exportFormat` setting accepts `'zip'`/`'scorm'` values but nothing downstream acts on them differently.
+- **Standalone single-file HTML export** only inlines small raster images (≤1 MB, non-SVG) as data URLs; SVG, large images, audio, video, and captions are rewritten to `assets/...` relative paths that do not exist anywhere — the single-file download is _blocked_ with a toast in that case (`app.js:1448`), which is correct/safe behavior but means the "self-contained HTML" promise only holds for image-light components.
 - **15 of 21 components have no independent `validate()` contract** — they rely only on generic per-field schema validation, not component-specific business-rule validation (e.g., "at least one correct answer," "hotspot coordinates within bounds") the way the 6 modular components do.
 - **Media portability**: uploaded Blobs live only in the current browser's IndexedDB and are never embedded in the project JSON. Exporting a project and importing it in another browser (or after clearing site data) yields "missing" media references with no recovery path other than re-uploading.
-- **Orphaned IndexedDB records**: removing/replacing media revokes the *runtime* object URL but does not garbage-collect the underlying IndexedDB record, since a saved project might still reference it. There is no visible sweep/cleanup UI for genuinely orphaned records.
+- **Orphaned IndexedDB records**: removing/replacing media revokes the _runtime_ object URL but does not garbage-collect the underlying IndexedDB record, since a saved project might still reference it. There is no visible sweep/cleanup UI for genuinely orphaned records.
 
 ## 4. Confirmed defects
 
@@ -92,8 +92,8 @@ No functional/logic defects were found in the modules read in depth (`state.js`,
 
 **Confirmed risk points (also disclosed in `KNOWN-ISSUES.md`, verified here rather than only cited):**
 
-- The `srcdoc` preview iframe uses `sandbox="allow-scripts allow-same-origin"` (plus additional flags on the exported iframe snippet: `allow-popups allow-popups-to-escape-sandbox allow-forms`). `allow-scripts` + `allow-same-origin` together are the combination that, if ever paired with attacker-controlled *unsanitized* markup, would let injected script reach the parent-app-adjacent origin context — the sandbox is not a substitute for the sanitization layer, only defense-in-depth around it. Currently the app never puts unsanitized author content into the document, so this is a latent risk contingent on sanitizer correctness, not an active hole.
-- `openPreview()` (`js/preview.js:45-51`) uses `previewWindow.document.write(html)` on a `window.open()` popup with `previewWindow.opener = null` set first (correct reverse-tabnabbing mitigation) — but `document.write` on the *same generated, already-sanitized* HTML the iframe uses; risk here is entirely inherited from the shared compiler, not an independent injection point.
+- The `srcdoc` preview iframe uses `sandbox="allow-scripts allow-same-origin"` (plus additional flags on the exported iframe snippet: `allow-popups allow-popups-to-escape-sandbox allow-forms`). `allow-scripts` + `allow-same-origin` together are the combination that, if ever paired with attacker-controlled _unsanitized_ markup, would let injected script reach the parent-app-adjacent origin context — the sandbox is not a substitute for the sanitization layer, only defense-in-depth around it. Currently the app never puts unsanitized author content into the document, so this is a latent risk contingent on sanitizer correctness, not an active hole.
+- `openPreview()` (`js/preview.js:45-51`) uses `previewWindow.document.write(html)` on a `window.open()` popup with `previewWindow.opener = null` set first (correct reverse-tabnabbing mitigation) — but `document.write` on the _same generated, already-sanitized_ HTML the iframe uses; risk here is entirely inherited from the shared compiler, not an independent injection point.
 - **`isSafeProjectValue` in `storage.js`** allow-lists project JSON keys to `/^[a-zA-Z0-9_-]+$/`, rejects `objectUrl`/`blob` properties, caps nesting depth at 12, array length at 1000, and object key count at 100 — a reasonable belt against prototype-pollution-style or oversized payloads in imported project JSON. **Assumption**: this was not fuzz-tested in this pass beyond what `tests/security.test.mjs`/`tests/unit` already cover.
 - No Subresource Integrity (SRI) on the Google Fonts `<link>` tags in either the builder shell or generated output; low severity (Google Fonts CSS is same trust tier as any other CDN asset the app already depends on), but worth noting since generated components are meant to be embedded in third-party LMS pages.
 - There is no server-side component at all (by design), so this audit did not find any injection surface analogous to SQL/command injection — the realistic threat model here is entirely "does authored/uploaded content escape into executable context inside the generated HTML," which is where the sanitizer coverage above is concentrated.
@@ -155,7 +155,7 @@ Judgment call, made explicit so it can be argued with:
 - **Blocking for any release that claims "ZIP/SCORM export" or "AI generation" works**: neither does; both are simulated/placeholder (§3). Shipping with these visible and unlabeled as preview/placeholder would be a false-advertising risk to end users (instructional designers relying on SCORM packaging for LMS delivery).
 - **Blocking for any release that claims cross-browser E2E is green**: the 12 Firefox failures are unresolved/unexplained as of this audit (§0, §9) and must be root-caused — either fixed or confirmed as a sandbox artifact — before Firefox support is asserted.
 - **Not blocking, but must be disclosed**: media non-portability across browsers/machines (§3), partial single-file export (§7), and the accessibility-warning-not-error posture (§6) are all defensible product decisions already documented in `KNOWN-ISSUES.md` — they're acceptable for an internal MVP tool as long as users are told, which they currently are.
-- **Not blocking for an internal/local-only MVP, but should gate any externally-distributed or multi-user release**: no lint/CI static analysis (§8/§9), no per-component `validate()` for 15/21 components (§3/§8), and the un-line-by-line-audited state of `preview.js`/`app.js` (§4) — these raise the cost and risk of the *next* change, not the correctness of the current one.
+- **Not blocking for an internal/local-only MVP, but should gate any externally-distributed or multi-user release**: no lint/CI static analysis (§8/§9), no per-component `validate()` for 15/21 components (§3/§8), and the un-line-by-line-audited state of `preview.js`/`app.js` (§4) — these raise the cost and risk of the _next_ change, not the correctness of the current one.
 
 ## 12. Recommended production acceptance criteria
 
@@ -174,9 +174,11 @@ Recommendation, to be agreed with stakeholders before being treated as a gate:
 ## Summary
 
 ### Files inspected
+
 `app.js`, `index.html`, `styles.css`, `package.json`, `package-lock.json`, `vitest.config.js`, `playwright.config.js`, `.github/workflows/tests.yml`, `ARCHITECTURE.md`, `PROJECT.md`, `COMPONENT-SCHEMA.md`, `KNOWN-ISSUES.md`, `TESTING.md`, `Readme`, and every file in `js/` (`catalog.js`, `editor.js`, `editor-schemas.js`, `export.js`, `media.js`, `media-storage.js`, `media-upload.js`, `preview.js` [partial — CSP/write/openPreview sections; not read line-by-line in full given its size], `state.js`, `storage.js`, `themes.js`, `toast.js`, `utilities.js`) and `components/` (`accordion.js`, `flip-cards.js`, `multiple-choice.js`, `multiple-select.js`, `tabs.js`, `vertical-timeline.js`). Test suite structure under `tests/` was inspected via `TESTING.md` and directory listing, not read test-by-test. No `AGENTS.md`/`CLAUDE.md` found. Confirmed no `docs/` directory existed before this audit created it.
 
 ### Commands executed
+
 - `npm run test:unit` → pass (139/139)
 - `npm run test:coverage` → pass, all thresholds met
 - `npm run test:e2e` → 116 passed / 12 failed (all Firefox, timeout) / 1 skipped (documented WebKit/Windows IndexedDB limitation)
@@ -184,9 +186,11 @@ Recommendation, to be agreed with stakeholders before being treated as a gate:
 - `git log -1`, `node --version`, `npm --version` for audit metadata
 
 ### Test/build results
+
 Unit + coverage: fully green, thresholds exceeded. E2E: green on Chromium and WebKit, red on Firefox with 12 timeout failures whose root cause (sandbox vs. real defect) is unresolved as of this audit. No build step applies to this project.
 
 ### Highest-priority findings
+
 1. Firefox e2e failures are unexplained and must be triaged in a clean environment before any "cross-browser tested" claim is made (§0, §9, §11).
 2. ZIP/SCORM export and AI generation are non-functional placeholders currently visible in the UI (§3, §11) — release-blocking if advertised as working.
 3. 15 of 21 components live in an unmodularized, untested-at-the-same-depth 3,127-line file (`js/preview.js`) with no independent `validate()` — the largest technical-debt and risk concentration in the codebase (§4, §8, §9).
@@ -194,4 +198,5 @@ Unit + coverage: fully green, thresholds exceeded. E2E: green on Chromium and We
 5. Media is not portable across browsers/machines and is not embedded in project JSON (§3, §7, §10).
 
 ### Recommended next implementation step
+
 Re-run the Playwright e2e suite for the `firefox` project alone, in the environment that will actually run CI (or in an unrestricted local shell), to determine whether the 12 failures are a sandbox-networking artifact of this audit environment or a genuine, previously-undocumented cross-browser regression. This is the fastest, lowest-risk action that unblocks an accurate answer to "is this release-ready," and should happen before starting any of the Phase 1+ work in §10.

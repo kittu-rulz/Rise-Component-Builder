@@ -151,6 +151,9 @@ export function importThemeJson(text) {
   };
 }
 
+/**
+ * @param {{ name?: any, description?: string, organization?: string, tokens?: any, id?: any }} [options]
+ */
 export function createCustomTheme({ name, description = 'Custom component theme.', organization = 'Custom', tokens, id } = {}) {
   const now = new Date().toISOString();
   const candidate = {

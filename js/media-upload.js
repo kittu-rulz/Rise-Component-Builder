@@ -36,6 +36,9 @@ function createPreview(kind, source, name) {
   return element;
 }
 
+/**
+ * @param {{ field: any, controlId: any, value?: any, onChange: any, onMultiple?: any, store?: any, limits?: any }} options
+ */
 export function createMediaUploadControl({
   field, controlId, value, onChange, onMultiple, store, limits
 }) {

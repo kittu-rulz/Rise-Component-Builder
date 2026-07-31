@@ -125,6 +125,7 @@ export function sanitizeURL(value, options = {}) {
   if (!input) return fallback;
   const schemeEnd = input.indexOf(':');
   if (schemeEnd < 1) return allowRelative && /^assets\/[a-z0-9._-]+$/i.test(input) ? input : fallback;
+  // eslint-disable-next-line no-control-regex -- intentionally strips control characters that could hide a scheme, e.g. a NUL byte inside "javascript:"
   const normalizedScheme = input.slice(0, schemeEnd).replace(/[\u0000-\u0020\u007f]+/g, '').toLowerCase();
 
   if (normalizedScheme === 'javascript' || normalizedScheme === 'vbscript') return fallback;

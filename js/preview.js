@@ -4,32 +4,6 @@ import {
 import { resolveMediaReferencesForPreview } from './media-storage.js';
 import { applyThemeToConfig, getBuiltInTheme, resolveThemeTokens } from './themes.js';
 
-function hexRgb(hex) {
-  const match = /^#([0-9a-f]{6})$/i.exec(hex || '');
-  if (!match) return null;
-  const value = Number.parseInt(match[1], 16);
-  return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
-}
-
-function luminance(rgb) {
-  const channels = rgb.map(value => {
-    const channel = value / 255;
-    return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-}
-
-function contrastRatio(first, second) {
-  const a = luminance(hexRgb(first) || [0, 0, 0]);
-  const b = luminance(hexRgb(second) || [255, 255, 255]);
-  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-}
-
-function readableText(preferred, background) {
-  if (contrastRatio(preferred, background) >= 4.5) return preferred;
-  return contrastRatio('#000000', background) >= contrastRatio('#FFFFFF', background) ? '#000000' : '#FFFFFF';
-}
-
 function renderCustomItemArtwork(item, fallbackMarkup = '') {
   if (!item?.iconImage) return fallbackMarkup;
   const decorative = item.iconDecorative !== false;
@@ -272,7 +246,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
     } else if (compId === 'profile-cards') {
       componentHtml = `
         <div class="profiles-grid">
-          ${c.items.map((item, idx) => `
+          ${c.items.map((item) => `
             <div class="profile-card-item">
               <div class="profile-avatar-circle ${item.imageCrop === 'square' ? 'square' : ''}">
                 ${item.image ? `<img src="${escapeAttribute(item.image)}" alt="${item.decorative ? '' : escapeAttribute(item.altText || '')}" ${item.decorative ? 'aria-hidden="true"' : ''}>` : `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`}
@@ -288,7 +262,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
     } else if (compId === 'info-grid') {
       componentHtml = `
         <div class="info-grid-container">
-          ${c.items.map((item, idx) => `
+          ${c.items.map((item, _idx) => `
             <div class="info-grid-item">
               <div class="info-grid-icon">
                 ${renderCustomItemArtwork(item, '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="9" x2="15" y2="9"></line><line x1="9" y1="13" x2="15" y2="13"></line><line x1="9" y1="17" x2="13" y2="17"></line></svg>')}

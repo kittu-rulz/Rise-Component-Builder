@@ -176,6 +176,10 @@ export function validateProject(value) {
   }
 }
 
+/**
+ * @param {{ id?: any, name?: any, componentId?: any, createdAt?: any, config?: any,
+ *   theme?: any, activeTheme?: any, componentOverrides?: any, uiTheme?: any, settings?: any }} project
+ */
 export function buildProject({
   id, name, componentId, createdAt, config, theme, activeTheme, componentOverrides, uiTheme, settings
 }) {

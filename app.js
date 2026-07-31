@@ -1,4 +1,6 @@
 /* Rise Component Builder — Application Shell Logic */
+// @ts-nocheck -- extensive untyped document.getElementById() DOM wiring; see docs/TESTING-STRATEGY.md "Type checking".
+// Opt back in incrementally as sections of this file are typed or migrated into the component registry (docs/ARCHITECTURE.md §1).
 
 import { appState, resetConfig } from './js/state.js';
 import {
@@ -111,7 +113,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnPreviewPopout = document.getElementById('btn-preview-popout');
   const livePreviewIframe = document.getElementById('live-preview-iframe');
   const savedComponentsList = document.getElementById('saved-components-list');
-  const saveModal = document.getElementById('modal-save');
   const saveModalTitle = document.getElementById('save-modal-title');
   const saveNameInput = document.getElementById('save-component-name');
   const btnConfirmSaveAs = document.getElementById('btn-confirm-save-as');

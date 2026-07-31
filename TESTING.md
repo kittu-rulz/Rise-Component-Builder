@@ -1,5 +1,7 @@
 # Testing the Rise Component Builder
 
+This is the practical how-to guide. For the *why* behind the pyramid, coverage scope, and the E2E browser-matrix status, see [`docs/TESTING-STRATEGY.md`](docs/TESTING-STRATEGY.md).
+
 ## Installation
 
 Install the pinned development dependencies from the repository root:
@@ -21,6 +23,12 @@ Use `npm install` only when intentionally updating dependencies and the lockfile
 | `npm run test:e2e` | Run Chromium browser, interaction, persistence, export, responsive, and accessibility tests |
 | `npm run test:e2e:ui` | Open Playwright's interactive test UI |
 | `npm run test:coverage` | Run Vitest with V8 coverage and enforce quality gates |
+| `npm run lint` | Run ESLint over application and test code |
+| `npm run format` | Apply Prettier formatting |
+| `npm run format:check` | Check Prettier formatting without writing (CI-safe) |
+| `npm run typecheck` | Run `tsc --noEmit` against JSDoc-typed `.js` files (incremental, see `docs/TESTING-STRATEGY.md`) |
+| `npm run build` | Assemble and verify the static `dist/` tree for deployment |
+| `npm run validate` | Run lint, typecheck, coverage, and build in one CI-friendly gate |
 
 Coverage thresholds are 70% statements, 60% branches, 70% functions, and 70% lines. HTML and JSON summary reports are written to `coverage/`.
 

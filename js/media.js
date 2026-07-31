@@ -75,6 +75,7 @@ export function validateMediaFile(file, kind, limits = MEDIA_LIMITS) {
 }
 
 export function sanitizeSVGText(value) {
+  // eslint-disable-next-line no-control-regex -- intentionally strips control characters before unsafe-content checks
   const svg = String(value ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
   const normalized = svg
     .replace(/&#x([0-9a-f]+);?/gi, (_, code) => String.fromCodePoint(Number.parseInt(code, 16)))

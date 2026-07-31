@@ -97,7 +97,7 @@ There is no application framework, production bundler, backend, or external data
 - The application is a local browser MVP and has no collaboration, authentication, server sync, or deployment workflow.
 - Chromium is the initial automated browser target; Firefox, WebKit, Rise, Moodle, and assistive-technology verification remain manual.
 
-See `KNOWN-ISSUES.md` for confirmed implementation details.
+See `docs/KNOWN-ISSUES.md` for confirmed implementation details, `docs/ARCHITECTURE.md` for module boundaries, `docs/COMPONENT-SCHEMA.md` for the data model, `docs/EXPORT-CONTRACT.md` for how preview and export stay in sync, `docs/SECURITY.md` for the sanitization/threat model, and `docs/TESTING-STRATEGY.md` for the test/lint/typecheck/build pipeline.
 
 ## MVP objectives
 

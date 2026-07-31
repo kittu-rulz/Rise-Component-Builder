@@ -135,7 +135,10 @@ export function createSchemaItemEditor({ container, onChange }) {
     });
   }
 
-  function appendField({ field, model, items, schema, indexKey, target, onMultiple, limits }) {
+  /**
+   * @param {{ field: any, model: any, items: any, indexKey: any, target: any, onMultiple?: any, limits?: any }} options
+   */
+  function appendField({ field, model, items, indexKey, target, onMultiple, limits }) {
     if (!supportedEditorFieldTypes.includes(field.type)) return;
     const wrapper = document.createElement('div');
     wrapper.className = `input-wrapper schema-field schema-field-${field.type}`;
@@ -166,6 +169,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       onChange();
     };
 
+    /** @type {any} control's concrete element type depends on field.type, resolved dynamically below */
     let control;
     let fieldElement;
     if (['image', 'audio', 'video'].includes(field.type) || field.uploadKind) {
@@ -250,7 +254,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       title.textContent = schema.componentLabel || 'Component media';
       const body = document.createElement('div');
       body.className = 'item-card-body';
-      schema.componentFields.forEach(field => appendField({ field, model: config, items, schema, indexKey: 'component', target: body, limits }));
+      schema.componentFields.forEach(field => appendField({ field, model: config, items, indexKey: 'component', target: body, limits }));
       componentCard.append(title, body);
       container.appendChild(componentCard);
     }
@@ -322,7 +326,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       if (!collapsed) {
         schema.itemFields.forEach(field => {
           appendField({
-            field, model: item, items, schema, indexKey: index, target: body, limits,
+            field, model: item, items, indexKey: index, target: body, limits,
             onMultiple: references => {
               item[field.id] = references[0];
               item[`${field.id}Duration`] = Number.isFinite(references[0]?.duration) ? references[0].duration : null;
@@ -347,7 +351,7 @@ export function createSchemaItemEditor({ container, onChange }) {
       // which competes with and interrupts interactive children (range
       // sliders, inputs) even when `dragstart` itself is later cancelled.
       card.addEventListener('mousedown', event => {
-        card.draggable = Boolean(event.target.closest('.drag-handle'));
+        card.draggable = Boolean(/** @type {Element} */ (event.target)?.closest('.drag-handle'));
       });
       card.addEventListener('mouseup', () => { card.draggable = false; });
       card.addEventListener('dragstart', event => {
