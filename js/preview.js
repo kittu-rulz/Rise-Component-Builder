@@ -1517,6 +1517,42 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       display: flex;
       justify-content: space-between;
     }
+    .process-controls-row .btn {
+      padding: 10px 24px;
+      border-radius: var(--button-radius);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--animation-speed);
+    }
+    .process-controls-row .btn-small {
+      padding: 8px 18px;
+      font-size: 13px;
+    }
+    .process-controls-row .btn-primary {
+      background-color: var(--primary);
+      color: var(--on-primary);
+    }
+    .process-controls-row .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .process-controls-row .btn-secondary {
+      background-color: transparent;
+      color: var(--text-main);
+      border: var(--border-style);
+    }
+    .process-controls-row .btn-secondary:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+    .process-controls-row .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .process-controls-row .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--focus-ring);
+    }
 
     /* 13. Branching Scenario Styles */
     .scenario-container {
