@@ -5,13 +5,15 @@
 import { appState, resetConfig } from './js/state.js';
 import {
   buildProject, clearDraft, deleteProject, duplicateProject, getProject, importProjectJson,
-  deleteCustomTheme, loadCustomThemes, loadDefaultThemeId, loadDraft, loadFavorites, loadProjects,
-  loadSettings, loadUiTheme, renameProject, saveCustomTheme, saveDefaultThemeId, saveDraft,
-  saveFavorites, saveProject, saveSettings, saveUiTheme
+  deleteCustomTheme, loadCustomThemes, loadDefaultThemeId, loadDraft, loadFavorites, loadPreviewDevice,
+  loadProjects, loadSettings, loadUiTheme, renameProject, saveCustomTheme, saveDefaultThemeId, saveDraft,
+  saveFavorites, savePreviewDevice, saveProject, saveSettings, saveUiTheme
 } from './js/storage.js';
 import { componentCatalog, filterCatalog, createCatalogCard } from './js/catalog.js';
+import { COMPONENT_REGISTRY, getCategoriesWithCounts, getComponentById, getDefaultConfig } from './js/component-registry.js';
 import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditorItem, validateActiveComponent, validateSchemaField } from './js/editor.js';
-import { writePreview, openPreview, generateIframeContent as compilePreview } from './js/preview.js';
+import { writePreview, openPreview, generateIframeContent as compilePreview, COMPONENT_MAX_WIDTH } from './js/preview.js';
+import { getDeviceWidthLabel } from './js/device-preview.js';
 import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, prepareMediaExport } from './js/export.js';
 import { copyTextToClipboard, toRgba as colorToRgba } from './js/utilities.js';
 import { showToast } from './js/toast.js';
@@ -137,10 +139,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function init() {
     // 1. Load theme state
     setUiTheme(appState.uiTheme);
-    
+    document.documentElement.style.setProperty('--component-max-width', `${COMPONENT_MAX_WIDTH}px`);
+    applyDeviceMode(loadPreviewDevice());
+
     // 2. Render initial category catalog
     renderCatalog();
-    
+    updateCategoryBadges();
+
     // 3. Update Favorites count
     updateFavoritesBadge();
     updateStorageMeter();
@@ -485,6 +490,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ==========================================
   // COMPONENT LOADER & EDITOR STATE
   // ==========================================
+  // Rule: the selected preview device mode (js/device-preview.js) is intentionally left
+  // untouched here. It reflects the author's current testing intent ("check every block
+  // at mobile width this session"), not a per-component default, so it persists across
+  // component switches rather than resetting to Desktop.
   function loadComponentToEditor(component) {
     appState.currentProjectId = null;
     appState.currentProjectName = '';
@@ -526,109 +535,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function setupComponentFields(id) {
-    const modularComponent = componentRegistry[id];
-    if (modularComponent) {
-      appState.config.items = structuredClone(modularComponent.defaultConfig.items);
-      Object.entries(modularComponent.defaultConfig).forEach(([key, value]) => {
-        if (key !== 'items') appState.config[key] = structuredClone(value);
-      });
-      return;
-    }
-
-    // Generate specialized items for the remaining legacy components.
-    if (id === 'horizontal-timeline') {
-      appState.config.items = [
-        { title: 'Phase 1: Research', content: 'Collect data assets, requirements, and verify targets.' },
-        { title: 'Phase 2: Build Layout', content: 'Configure colors, fonts, margins, and borders in the tool.' },
-        { title: 'Phase 3: Export HTML', content: 'Copy custom block and import inside Articulate Rise blocks.' }
-      ];
-    } else if (id === 'hotspots') {
-      appState.config.items = [
-        { title: 'Engine Valve', content: 'Manages the fuel-air mixture entry.', x: '25', y: '40' },
-        { title: 'Spark Plug', content: 'Triggers the combustion spark.', x: '50', y: '25' },
-        { title: 'Piston Rod', content: 'Transmits linear force to rotational crankshaft torque.', x: '75', y: '65' }
-      ];
-    } else if (id === 'button-list') {
-      appState.config.items = [
-        { title: 'Launch Resource Hub', content: 'https://community.articulate.com' },
-        { title: 'Download User Manual', content: 'https://github.com' }
-      ];
-    } else if (id === 'menu-list') {
-      appState.config.items = [
-        { title: 'Module 1: Getting Started', content: 'Introduction and setup basics.' },
-        { title: 'Module 2: Advanced Design', content: 'Explore layouts, shadows, and spacing.' },
-        { title: 'Module 3: Code Exporting', content: 'Embedding components inside SCORM courses.' }
-      ];
-    } else if (id === 'sorting-activity') {
-      appState.config.items = [
-        { title: 'Vibrant Colors', content: 'Design System', category: 'Design' },
-        { title: 'Click Triggers', content: 'Interaction Logic', category: 'Logic' },
-        { title: 'Rounded Corners', content: 'Design System', category: 'Design' },
-        { title: 'Theme Toggles', content: 'Interaction Logic', category: 'Logic' }
-      ];
-    } else if (id === 'fill-blank') {
-      appState.config.items = [
-        { title: 'Articulate Rise uses [blank] to display custom interactive content.', content: 'iframes' },
-        { title: 'To keep web builds lightweight, use [blank] CSS styles.', content: 'vanilla' }
-      ];
-    } else if (id === 'process-flow') {
-      appState.config.items = [
-        { title: 'Define Objectives', content: 'Align course content with measurable learner metrics.' },
-        { title: 'Create Visual Wireframes', content: 'Draft templates in the Rise Component Builder UI.' },
-        { title: 'Export SCORM Pack', content: 'Zip files and deploy directly inside the Rise lesson LMS.' }
-      ];
-    } else if (id === 'scenario') {
-      appState.config.items = [
-        { title: 'How should you write interactive eLearning scripts?', content: 'Short and conversational' },
-        { title: 'Choice A: Write dense documents.', content: 'Character: "That makes learning boring!" (Incorrect)' },
-        { title: 'Choice B: Write conversational steps.', content: 'Character: "Spot on! Keeps learners hooked!" (Correct)' }
-      ];
-    } else if (id === 'profile-cards') {
-      appState.config.items = [
-        { title: 'Sarah Jenkins', content: 'Lead Instructional Designer • Dedicated to creating engaging eLearning pathways.' },
-        { title: 'Marcus Chen', content: 'UX Engineer • Expert in web layout rendering and responsive CSS frameworks.' }
-      ];
-    } else if (id === 'info-grid') {
-      appState.config.items = [
-        { title: 'SaaS Aesthetic', content: 'Vibrant custom colors, layered shadows, and large margins.' },
-        { title: 'Fully Serverless', content: 'Direct srcdoc codes containing styles and scripts.' },
-        { title: 'Responsive Shell', content: 'Adaptive grid layout structures for all target screens.' }
-      ];
-    } else if (id === 'pricing-comparison') {
-      appState.config.items = [
-        { title: 'Starter Plan', content: '1 User • 5 Components/mo • Community Support' },
-        { title: 'Professional', content: 'Unlimited Builders • 20 Components/mo • Priority Support' },
-        { title: 'Enterprise Suite', content: 'Custom Domains • Unlimited Builders • Dedicated Success Agent' }
-      ];
-    } else if (id === 'audio-player') {
-      appState.config.items = [
-        { title: 'Introduction Podcast (Audio Clip)', content: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }
-      ];
-    } else if (id === 'video-frame') {
-      appState.config.items = [
-        { title: 'Rise Builder Workspace Walkthrough', content: 'https://www.w3schools.com/html/mov_bbb.mp4' }
-      ];
-    } else if (id === 'image-gallery') {
-      appState.config.items = [
-        { title: 'Workspace Design System', content: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800' },
-        { title: 'User Layout Journey', content: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800' }
-      ];
-    } else if (id === 'ai-generator') {
-      appState.config.items = [
-        { title: 'AI Branching Dialogue Prompt', content: 'Generate a customer conflict scenario for retail checkout.' }
-      ];
-    } else if (id === 'ai-quiz-maker') {
-      appState.config.items = [
-        { title: 'AI Assessment Topic Prompt', content: 'Create a 5-question multiple choice quiz on Cyber Security basics.' }
-      ];
-    } else {
-      // Default Accordion structure
-      appState.config.items = [
-        { title: 'Understanding User Intent', content: 'Instructional design begins by identifying the core learning objectives and alignment with business outcomes.' },
-        { title: 'Designing for Engagement', content: 'Modern eLearning relies on micro-interactions, clean visual layouts, and bite-sized chunks of information.' },
-        { title: 'SCORM and Tracking Analytics', content: 'Export clean standard elements to trace course completion, custom interaction states, and score cards.' }
-      ];
-    }
+    const entry = getComponentById(COMPONENT_REGISTRY, id) || getComponentById(COMPONENT_REGISTRY, 'accordion');
+    const defaults = getDefaultConfig(entry);
+    appState.config.items = defaults.items;
+    Object.entries(defaults).forEach(([key, value]) => {
+      if (key !== 'items') appState.config[key] = value;
+    });
   }
 
   function applyMissingSchemaDefaults(component) {
@@ -671,6 +583,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function updateFavoritesBadge() {
     favoritesCountBadge.innerText = appState.favorites.size;
+  }
+
+  function updateCategoryBadges() {
+    getCategoriesWithCounts(COMPONENT_REGISTRY).forEach(({ id, count }) => {
+      if (id === 'ai') return; // AI category keeps its static "Beta" badge, not a count.
+      const badge = document.querySelector(`.nav-item[data-category="${id}"] .badge`);
+      if (badge) badge.textContent = String(count);
+    });
   }
 
   function formatStorageBytes(bytes) {
@@ -830,17 +750,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ==========================================
   // DEVICE VIEWPORT CONTROLS
   // ==========================================
+  const previewWidthLabel = document.getElementById('preview-width-label');
+  const deviceModeClasses = ['desktop', 'tablet', 'mobile-lg', 'mobile'];
+
+  function applyDeviceMode(device) {
+    deviceButtons.forEach(b => {
+      const isActive = b.getAttribute('data-device') === device;
+      b.classList.toggle('active', isActive);
+      b.setAttribute('aria-pressed', String(isActive));
+    });
+    previewViewport.classList.remove(...deviceModeClasses);
+    previewViewport.classList.add(device);
+    previewWidthLabel.textContent = getDeviceWidthLabel(device, COMPONENT_MAX_WIDTH);
+  }
+
   deviceButtons.forEach(btn => {
     btn.addEventListener('click', () => {
-      deviceButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
       const device = btn.getAttribute('data-device');
-      
-      // Remove all sizes
-      previewViewport.classList.remove('desktop', 'tablet', 'mobile');
-      // Add new size
-      previewViewport.classList.add(device);
+      applyDeviceMode(device);
+      try { savePreviewDevice(device); }
+      catch (error) { showToast(error.message, 'error'); }
     });
   });
 

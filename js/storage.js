@@ -2,6 +2,7 @@ import { isMediaReference } from './media.js';
 import {
   BUILT_IN_THEMES, DEFAULT_THEME_ID, getBuiltInTheme, normalizeComponentOverrides, validateTheme
 } from './themes.js';
+import { DEFAULT_DEVICE_MODE, isValidDeviceMode } from './device-preview.js';
 
 export const SCHEMA_VERSION = 2;
 
@@ -12,7 +13,8 @@ const KEYS = {
   settings: 'rise-builder-settings-v1',
   uiTheme: 'rise-builder-theme',
   customThemes: 'rise-builder-custom-themes-v1',
-  defaultTheme: 'rise-builder-default-theme-v1'
+  defaultTheme: 'rise-builder-default-theme-v1',
+  previewDevice: 'rise-builder-preview-device-v1'
 };
 
 const DEFAULT_SETTINGS = {
@@ -325,6 +327,14 @@ export function loadFavorites() {
   return Array.isArray(value) ? value.filter(item => typeof item === 'string') : [];
 }
 export function saveFavorites(favorites) { writeJson(KEYS.favorites, [...favorites]); }
+
+export function loadPreviewDevice() {
+  const value = readJson(KEYS.previewDevice, DEFAULT_DEVICE_MODE);
+  return isValidDeviceMode(value) ? value : DEFAULT_DEVICE_MODE;
+}
+export function savePreviewDevice(mode) {
+  writeJson(KEYS.previewDevice, isValidDeviceMode(mode) ? mode : DEFAULT_DEVICE_MODE);
+}
 
 export function loadSettings() { return normalizeSettings(readJson(KEYS.settings, DEFAULT_SETTINGS)); }
 export function saveSettings(settings) {

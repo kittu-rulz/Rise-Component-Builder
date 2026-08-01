@@ -4,6 +4,10 @@ import {
 import { resolveMediaReferencesForPreview } from './media-storage.js';
 import { applyThemeToConfig, getBuiltInTheme, resolveThemeTokens } from './themes.js';
 
+// The single source of truth for how wide an authored Rise block ever actually renders
+// (also referenced by the builder's own Desktop preview mode, js/device-preview.js).
+export const COMPONENT_MAX_WIDTH = 740;
+
 function renderCustomItemArtwork(item, fallbackMarkup = '') {
   if (!item?.iconImage) return fallbackMarkup;
   const decorative = item.iconDecorative !== false;
@@ -489,7 +493,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
     /* Interactive Block Shell */
     .rise-block-wrapper {
       width: 100%;
-      max-width: 740px;
+      max-width: ${COMPONENT_MAX_WIDTH}px;
       margin: 0 auto;
     }
     

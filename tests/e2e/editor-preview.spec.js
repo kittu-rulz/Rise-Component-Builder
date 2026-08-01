@@ -101,16 +101,12 @@ test('saving is blocked while a required schema field is invalid', async ({ page
   await expect(page.locator('#modal-save')).toBeVisible();
 });
 
-test('desktop, tablet, mobile, and refresh controls update the preview shell', async ({ page }) => {
-  const viewport = page.locator('#preview-viewport');
-  await page.locator('[data-device="tablet"]').click();
-  await expect(viewport).toHaveClass(/tablet/);
+test('refresh control repaints the live preview without changing the selected device mode', async ({ page }) => {
   await page.locator('[data-device="mobile"]').click();
-  await expect(viewport).toHaveClass(/mobile/);
-  await page.locator('[data-device="desktop"]').click();
-  await expect(viewport).toHaveClass(/desktop/);
   await page.locator('#btn-preview-refresh').click();
   await expect(page.frameLocator('#live-preview-iframe').locator('.accordion-group')).toBeVisible();
+  await expect(page.locator('#preview-viewport')).toHaveClass(/mobile/);
+  // Full device-mode width/accessibility/reflow coverage lives in preview-device-modes.spec.js.
 });
 
 test('pop-out preview opens where browser permissions permit', async ({ page }) => {
