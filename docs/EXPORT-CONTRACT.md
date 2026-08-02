@@ -1,6 +1,6 @@
 # Export contract
 
-This document specifies the guarantee that keeps the live preview and every exported output in sync, and exactly what each export format contains. It is the detailed companion to `docs/ARCHITECTURE.md` §4/§5.
+This document specifies the guarantee that keeps the live preview and every exported output in sync, the modular pipeline that assembles each compiled document, and exactly what each export format contains. It is the detailed companion to `docs/ARCHITECTURE.md` §1/§4/§5.
 
 ## The single-compiler guarantee
 
@@ -26,9 +26,36 @@ This document specifies the guarantee that keeps the live preview and every expo
 
 `app.js` calls `generateIframeContent(appState, componentRegistry, colorToRgba)` exactly once per regeneration and reuses the resulting string for every consumer: the live preview iframe, the "pop out" preview window, the iframe embed snippet, the HTML fragment, and the standalone HTML download. There is no second code path anywhere in the codebase that re-derives a component's markup from `appState` for export purposes.
 
-**Enforcement rule:** any change to component output must be made inside `generateIframeContent()` (or, for the six registered components, inside that component's `generateHTML`/`generateCSS`/`generateJS`, which `generateIframeContent()` calls). A change that only affects "what gets exported" and not "what the preview shows," or vice versa, is a bug by definition — the two cannot differ, because they are the same string. If a reviewer ever sees a diff that touches export-specific markup without touching preview, that is a signal the single-compiler rule is about to be violated and should be rejected.
+**Enforcement rule:** any change to component output must be made inside `generateIframeContent()` (orchestration/shell) or a component's own `generateHTML`/`generateCSS`/`generateJS` in `components/*.js` — never both, and never a separate export-only path. A change that only affects "what gets exported" and not "what the preview shows," or vice versa, is a bug by definition — the two cannot differ, because they are the same string.
 
-What _is_ allowed to differ between preview and export is **transformation of the compiled string's media references**, applied uniformly after compilation (see "Media resolution" below) — this changes _which URL a reference resolves to_, never the markup structure itself.
+## The modular export pipeline
+
+Every one of the 22 catalog components is a real module in `components/*.js` implementing the full contract (`docs/ARCHITECTURE.md` §1). `generateIframeContent()` (`js/preview.js`) is a thin orchestrator over the following stages — nothing else in the codebase assembles a compiled document:
+
+1. **Shared design tokens** — `js/themes.js` resolves the active theme + per-component overrides into token values; `generateIframeContent()` turns them into the `:root { --primary: ...; }` CSS custom properties every component's CSS references.
+2. **Shared export shell** (`js/export-shell.js`) — owns the outer document shape: the `<!DOCTYPE html>`/`<head>`/CSP meta/fonts link, the `<style>`/`<script>` wrapper, the block header (title/headline/description), and the completion-tracker widget markup (`renderShell`, `renderCompletionTrackerHTML`).
+3. **Shared accessibility utilities** (`js/export-shell.js#renderSharedA11yScript`) — the `announce`/`updateProgress`/`updateTrackerComplete`/`setProgressAccessibility` functions every component calls into (`viewedItems.add(idx); updateProgress();`), plus the fixed `.sr-only`/focus-visible/`prefers-reduced-motion`/`forced-colors` CSS (`SHARED_A11Y_CSS`) and the reset/block-chrome CSS (`BASE_RESET_CSS`).
+4. **Component-specific markup** — `entry.generateHTML(config, instanceId)`.
+5. **Component-specific CSS** — `entry.generateCSS()`. Only the active component's own rules are emitted; nothing from any other component's stylesheet is ever concatenated in.
+6. **Component-specific JS** — `entry.generateJS(config, instanceId)`, defining `initComponent()` plus whatever interaction functions that component needs. Only the active component's functions are emitted.
+7. **Optional component-specific media** — media reference fields (`image`/`audio`/`video` schema types) resolve through `js/media-storage.js` for preview and through `prepareMediaExport()` (`js/export.js`) for export; see "Media resolution" below.
+8. **Export validation** — each component's `validate(config)` (where implemented) plus the schema-driven `minItems`/required-field checks in `js/editor.js` gate saving; `js/component-registry.js#validateRegistry` gates the registry itself at module load (duplicate ids, missing metadata, incomplete renderers all throw immediately with a specific message).
+9. **Deterministic output** — see below.
+
+**Requirement 1 in practice:** because stages 4–6 only ever call the *active* component's own module, an Accordion export structurally cannot contain `.quiz-option`, `.gallery-item-card`, `.audio-player-block`, `.ai-generator-preview`, or any other component's markers — this is proven by `tests/unit/export-isolation.test.js`, which compiles every one of the 22 components and asserts the output contains only its own group's markers and none of the other 20 (AI's two mock components are treated as one group, since they intentionally share their mock-UI code with each other — not with anything unrelated).
+
+### Instance scoping and isolation strategy (Requirements 5 & 6)
+
+- **Deterministic per-export instance id.** `js/preview.js#getInstanceId` derives `rcb-<projectId>` (or `rcb-preview` when unsaved) — never `Date.now()`/`Math.random()`. Same input state always compiles to byte-identical output (`tests/unit/export-determinism.test.js`).
+- **Instance-scoped element ids.** Every `id="..."` a component emits is prefixed with that instance id (e.g. `id="${instanceId}-quiz-feedback-box"`), including the shared shell's own ids (block headline, completion tracker, `interaction-status`). Two exports pasted onto the same page never collide on an id.
+- **A single top-level IIFE per export.** `generateIframeContent()` wraps the shared accessibility script and the active component's script together in one `(function() { ... })();` (see `js/export-shell.js`). Every `function`/`var` declaration in a component's `generateJS()` output — however it's named — is scoped to that IIFE, not the global `window`. Pasting two exports onto one page therefore cannot collide on a JS name, regardless of what either component happens to call its helper functions.
+- **CSS isolation, by format:**
+  - The **iframe embed** and **standalone HTML download** formats are isolated by the `<iframe>`/document boundary itself plus the strict CSP below — a structural guarantee that needs no additional scoping.
+  - The **HTML fragment** format (for pasting directly into a host page's own DOM) has no such boundary. Class names are not automatically rewritten/prefixed for this format — components use reasonably specific class names (e.g. `.accordion-group`, `.hotspot-tooltip-title`) but a host page's own styles could still coincidentally collide on a generic name. This is a deliberate, documented trade-off (not a gap the fragment format claims to close): the export modal labels the iframe embed "Recommended" precisely because it's the only format with a hard isolation guarantee, and the fragment format's own in-app description tells the author to prefer Option A for reliability. The id/JS-global guarantees above hold for the fragment format regardless.
+
+### Sanitization boundary (Requirements 9 & 10)
+
+`sanitizePreviewConfig(config, componentId)` (`js/utilities.js`) is the single sanitization boundary, applied once by `generateIframeContent()` before any component's `generateHTML`/`generateCSS`/`generateJS` ever runs (`docs/SECURITY.md`). Component modules are entitled to assume their input already passed through it — they are not expected to re-sanitize. Plain-text fields are escaped (`escapeHTML`/`escapeAttribute`), permitted rich-text fields are passed through the allowlist parser (`sanitizeRichText`), and URL-shaped fields (media sources, links) go through `sanitizeURL`. `tests/unit/generators.test.js` exercises every component against hostile fixtures (script injection, `javascript:`/`vbscript:`/`data:` URLs, long/multilingual/RTL/multiline text, empty optional fields) routed through this same sanitization step, matching the real pipeline exactly.
 
 ## What each export format contains
 
@@ -39,6 +66,12 @@ What _is_ allowed to differ between preview and export is **transformation of th
 | Standalone HTML download | `downloadHtml()` (`js/export.js`)                                              | The complete compiled document, saved as a `.html` file                                                                                                                      |
 | Project JSON download    | `downloadProjectJson()` (`js/export.js`)                                       | The versioned project record from `js/storage.js` (§8) — configuration, theme snapshot, overrides — not compiled HTML                                                        |
 | Asset manifest           | `downloadAssetManifest()` (`js/export.js`)                                     | `{ schemaVersion, assets: [...] }` describing media that could not be inlined                                                                                                |
+
+The exported file size (`getExportedFileSize`/`formatExportedFileSize`, `js/export.js`) is computed and shown in the export modal (`#export-file-size`) before the author downloads — Requirement 13.
+
+## Error handling (Requirement 14)
+
+`setupExportModalContent()` and both download button handlers (`app.js`) wrap the compile step (`prepareCurrentExport()`) in a try/catch. If a component's registry entry is missing (`generateIframeContent` throws a specific "no registered component module for …" error) or media resolution fails, the author sees a toast naming the failure instead of a silent no-op or a broken download.
 
 ## Media resolution during export
 
@@ -59,16 +92,19 @@ font-src https://fonts.gstatic.com data:; img-src 'self' http: https: data: blob
 media-src 'self' http: https: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'
 ```
 
-Full rationale is in `docs/SECURITY.md`. The relevant export-contract point: **the CSP is part of the compiled string, so it travels with every export automatically** — an exported standalone HTML file, an embedded `srcdoc` iframe, and the live preview are equally protected, because they are the same bytes.
+Full rationale is in `docs/SECURITY.md`. The relevant export-contract point: **the CSP is part of the compiled string, so it travels with every export automatically** — an exported standalone HTML file, an embedded `srcdoc` iframe, and the live preview are equally protected, because they are the same bytes. `connect-src 'none'` also means no exported component can ever make a network call — this is why the two "AI" components' generators are simulated (fixed placeholder output after a delay), not real AI calls; see `docs/KNOWN-ISSUES.md`.
 
 The iframe embed snippet additionally sets `sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"` on the `<iframe>` element itself (a host-page-level restriction, separate from the document's own CSP). A consuming LMS/CMS that strips or rejects these sandbox flags is an external compatibility constraint outside this application's control — see `docs/KNOWN-ISSUES.md`.
 
 ## Rise/LMS output contract
 
-The only communication a generated/exported component initiates toward its host page is documented in `docs/ARCHITECTURE.md` §11 — a single fixed-shape `postMessage` on completion. This message is part of the compiled `<script>` and therefore, per the single-compiler guarantee above, identical in preview, popout, and every export format.
+The only communication a generated/exported component initiates toward its host page is documented in `docs/ARCHITECTURE.md` §11 — a single fixed-shape `postMessage` on completion. This message is part of the shared accessibility script (`js/export-shell.js#renderSharedA11yScript`) and therefore, per the single-compiler guarantee above, identical in preview, popout, and every export format.
+
+**Rise compatibility claim, precisely scoped:** this application produces the iframe-embed and HTML-fragment representations Articulate Rise's "Code" → "Add code" block is documented to accept (standard `<iframe srcdoc>` / raw HTML+CSS+JS), and the sandbox/CSP values are chosen to be compatible with that block type. **This has not been independently tested inside a live Rise course as part of this repository's automation** — all automated coverage (`tests/e2e/*`) runs against a local static server, not Rise, Moodle, or any LMS. Do not represent this as "tested and working in Rise" beyond what is stated here; if that testing is performed and recorded, this section should be updated with the specific Rise version and result.
 
 ## Non-goals of this contract
 
 - It does not guarantee exported HTML renders identically in every host (Rise, Moodle, a raw browser) — only that the _bytes the application produces_ are identical across every export surface. Host-specific rendering differences are covered in `docs/KNOWN-ISSUES.md`.
 - It does not (yet) guarantee full component portability — media files referenced via `assets/...` paths are not currently packaged into a downloadable archive (ZIP/SCORM placeholder, see `docs/KNOWN-ISSUES.md`).
 - It does not cover the _application's own_ production build (`build.mjs`, `docs/ARCHITECTURE.md` "Build" section) — that assembles the builder app for hosting and is unrelated to a user's exported component output.
+- It does not claim the HTML-fragment export format is collision-proof against an arbitrary host page's CSS — see "CSS isolation, by format" above.

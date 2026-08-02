@@ -2,6 +2,19 @@ import { escapeSrcdoc, generateHtmlFragment, registerLocalBlobURL, revokeLocalBl
 import { blobToDataURL, isMediaReference, sanitizeAssetFilename, SMALL_IMAGE_INLINE_LIMIT } from './media.js';
 import { getMediaRecord, mediaStore } from './media-storage.js';
 
+/** Byte size of the compiled export (UTF-8), for display before download. */
+export function getExportedFileSize(html) {
+  return new Blob([html]).size;
+}
+
+export function formatExportedFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return 'Unknown size';
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  return `${(kb / 1024).toFixed(2)} MB`;
+}
+
 export function buildExportPayload(fullHtml, options = {}) {
   return {
     iframe: `<iframe srcdoc="${escapeSrcdoc(fullHtml)}" width="100%" height="500px" style="border:none;" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>`,

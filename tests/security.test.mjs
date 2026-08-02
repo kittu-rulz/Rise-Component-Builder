@@ -9,17 +9,13 @@ import { buildExportPayload } from '../js/export.js';
 import { generateIframeContent } from '../js/preview.js';
 import { toRgba } from '../js/utilities.js';
 import * as accordion from '../components/accordion.js';
-import * as tabs from '../components/tabs.js';
-import * as flipCards from '../components/flip-cards.js';
-import * as verticalTimeline from '../components/vertical-timeline.js';
-import * as multipleChoice from '../components/multiple-choice.js';
+import { COMPONENT_REGISTRY } from '../js/component-registry.js';
 
 const hostile = `Quotes "double", apostrophe 'single', <angle> & ampersand, backtick \`, \${danger}, </script><script>globalThis.pwned=true</script>, emoji 😀, multilingual العربية हिन्दी 中文 日本語`;
 const veryLong = `${'Long <value> & "quoted" 😀 '.repeat(5000)}END`;
 
-const registry = Object.fromEntries(
-  [accordion, tabs, flipCards, verticalTimeline, multipleChoice].map(component => [component.id, component])
-);
+// Every catalog component is a real module now (docs/ARCHITECTURE.md §1); use the full registry.
+const registry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, entry.renderer]));
 
 function stateFor(componentId, overrides = {}) {
   return {

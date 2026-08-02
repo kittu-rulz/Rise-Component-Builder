@@ -19,7 +19,7 @@ function baseEntry(overrides = {}) {
     defaultContent: { items: [] },
     defaultDesign: {},
     defaultBehaviour: {},
-    renderer: { type: 'legacy', dispatch: 'js/preview.js#generateIframeContent' },
+    renderer: { type: 'module', generateHTML: () => '', generateCSS: () => '', generateJS: () => '' },
     exporter: { type: 'shared', module: 'js/export.js#buildExportPayload' },
     validate: null,
     accessibilitySupport: true,

@@ -14,7 +14,7 @@ import { COMPONENT_REGISTRY, getCategoriesWithCounts, getComponentById, getDefau
 import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditorItem, validateActiveComponent, validateSchemaField } from './js/editor.js';
 import { writePreview, openPreview, generateIframeContent as compilePreview, COMPONENT_MAX_WIDTH } from './js/preview.js';
 import { getDeviceWidthLabel } from './js/device-preview.js';
-import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, prepareMediaExport } from './js/export.js';
+import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, formatExportedFileSize, getExportedFileSize, prepareMediaExport } from './js/export.js';
 import { copyTextToClipboard, toRgba as colorToRgba } from './js/utilities.js';
 import { showToast } from './js/toast.js';
 import { resolveMediaLimits, validateMediaAccessibility } from './js/media.js';
@@ -24,16 +24,10 @@ import {
   duplicateTheme, importThemeJson, normalizeComponentOverrides, renameCustomTheme,
   serializeTheme, validateThemeContrast
 } from './js/themes.js';
-import * as accordion from './components/accordion.js';
-import * as tabs from './components/tabs.js';
-import * as flipCards from './components/flip-cards.js';
-import * as verticalTimeline from './components/vertical-timeline.js';
-import * as multipleChoice from './components/multiple-choice.js';
-import * as multipleSelect from './components/multiple-select.js';
-
-const componentRegistry = Object.fromEntries(
-  [accordion, tabs, flipCards, verticalTimeline, multipleChoice, multipleSelect].map(component => [component.id, component])
-);
+// Every catalog component is a real, isolated module (js/component-registry.js). The
+// preview/export compiler needs its renderer (generateHTML/CSS/JS); the editor's
+// save-time validation gate needs its validate() — combine both under one id map.
+const componentRegistry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, { ...entry.renderer, validate: entry.validate }]));
 const generateIframeContent = () => compilePreview(appState, componentRegistry, colorToRgba);
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1353,11 +1347,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     const payload = currentExportBundle;
-    
+
     // Iframe Embed Code using self-contained srcdoc
     const iframeCode = document.getElementById('export-iframe-code');
     iframeCode.textContent = payload.iframe;
-    
+
     // Paste-friendly HTML fragment for custom HTML blocks
     const htmlCode = document.getElementById('export-html-code');
     htmlCode.textContent = payload.fragment;
@@ -1366,13 +1360,22 @@ document.addEventListener('DOMContentLoaded', async () => {
       warningBox.textContent = payload.warnings.join(' ');
     }
     if (manifestCode) manifestCode.textContent = JSON.stringify(payload.manifest, null, 2);
+
+    const fileSizeLabel = document.getElementById('export-file-size');
+    if (fileSizeLabel) fileSizeLabel.textContent = `Standalone HTML file size: ${formatExportedFileSize(getExportedFileSize(payload.html))}`;
   }
 
   const btnDownloadHtml = document.getElementById('btn-download-html');
   if (btnDownloadHtml) {
     btnDownloadHtml.addEventListener('click', async () => {
       const title = appState.selectedComponent?.title || 'rise-component';
-      const bundle = await prepareCurrentExport();
+      let bundle;
+      try {
+        bundle = await prepareCurrentExport();
+      } catch (error) {
+        showToast(`Export failed: ${error.message}`, 'error', 6000);
+        return;
+      }
       if (bundle.warnings.length) {
         currentExportBundle = bundle;
         showToast('Single-file export is blocked because one or more uploaded assets require separate files. Use ZIP asset preparation.', 'warning', 7000);
@@ -1386,7 +1389,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (btnDownloadZip) {
     btnDownloadZip.addEventListener('click', async () => {
       const title = appState.selectedComponent?.title || 'rise-component';
-      const bundle = currentExportBundle || await prepareCurrentExport();
+      let bundle;
+      try {
+        bundle = currentExportBundle || await prepareCurrentExport();
+      } catch (error) {
+        showToast(`Export failed: ${error.message}`, 'error', 6000);
+        return;
+      }
       downloadAssetManifest(title, bundle.manifest);
       showToast('Asset manifest prepared. ZIP packaging is not implemented yet.', 'warning', 6000);
     });

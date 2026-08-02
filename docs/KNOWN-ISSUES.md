@@ -8,24 +8,25 @@ Only confirmed or directly observable implementation limitations are listed here
 - ZIP and SCORM selections are visible, but the package button only shows a warning. No ZIP or SCORM archive is generated.
 - The export modal contains initial example code in the HTML source, although `app.js` replaces it with generated output when the modal opens.
 
-## Coupling and duplication (the primary architecture debt)
+## Coupling and duplication (the primary architecture debt) — resolved
 
-- Only Accordion, Tabs, Flip Cards, Vertical Timeline, Multiple Choice, and Multiple Select are registered components (`docs/ARCHITECTURE.md` §1, `docs/COMPONENT-SCHEMA.md`).
-- The remaining 15 catalog entries' markup, styles, and interaction logic are concentrated in the large `js/preview.js` file, and their default sample data is selected through a long conditional in `app.js`.
-- Component schemas exist for all catalog entries, but legacy generators do not expose independent `validate()` contracts.
-- Shared interaction CSS and component-specific CSS are emitted from one preview template, so a change can affect unrelated generated components.
-- Theme tokens centralize common colors, typography, radius, shadow, density, and motion values, but not every legacy component-specific spacing or decorative value has been tokenized.
+**Previously:** only 6 of 22 catalog entries were registered components; the rest shared one large, unconditionally-concatenated `js/preview.js` template, so exporting one component (e.g. Accordion) shipped every other component's CSS/JS too, and default sample data was selected through a long conditional in `app.js`.
+
+**Now:** all 22 catalog components are real modules in `components/*.js` implementing the full `generateHTML`/`generateCSS`/`generateJS`/`validate` contract. `js/preview.js` is a thin orchestrator that only ever calls the active component's own module; `js/export-shell.js` owns the shared shell/tokens/accessibility layer every component composes with. `tests/unit/export-isolation.test.js` structurally proves each component's compiled output contains only its own markers and none of the other 21's. See `docs/EXPORT-CONTRACT.md` for the full pipeline.
+
+Remaining, smaller items in this area:
+- Theme tokens centralize common colors, typography, radius, shadow, density, and motion values, but not every component-specific spacing or decorative value has been tokenized.
 - `index.html` element IDs and `styles.css` class names are coupled to selectors in `app.js` and `js/editor.js` with no enforced boundary — a refactor risk, not a bug.
 - Every item card's `<section>` is a native HTML5 drag source so cards can be reordered by dragging, but `dragstart`'s `event.target` is always that section, never the descendant a gesture began on. Native dragging is restricted to the `.drag-handle` button (via a separately tracked `mousedown` origin) so range sliders, text inputs, and other interactive controls inside a card are not hijacked mid-drag. See `docs/ARCHITECTURE.md` §3.
-
-**Recommended path (not yet scheduled):** migrate the 15 legacy components into the registry contract one at a time, each landing with its own generator-contract fixture matrix and `validate()`, per `docs/COMPONENT-SCHEMA.md`.
+- The HTML-fragment export format (pasting raw markup into a host page) has no automatic CSS class-name scoping — see "CSS isolation, by format" in `docs/EXPORT-CONTRACT.md` for the documented, deliberate trade-off.
+- No ZIP/archive packaging exists yet for components whose media couldn't be inlined (see "Placeholders" above) — this is unrelated to the isolation work above.
 
 ## Persistence and validation
 
 - Projects, drafts, favorites, settings, custom themes, the default component theme, and UI mode are persisted in localStorage only. There is no server synchronization or multi-user support.
 - Project schema version 2 validates theme snapshots and overrides and migrates version-1 projects, but it has no component-specific migration or deep schema validation.
 - Renaming and creating custom themes, and confirming project/theme deletion, use in-app modal dialogs (`#modal-prompt`, `#modal-confirm`) rather than the browser's native `prompt`/`confirm`; results and errors use reusable toasts.
-- Inline editor errors are rendered, and preview updates continue live regardless; clicking Save re-validates all required schema fields, `minItems`, and (for the six registered components) their `validate()` contract, and blocks saving with a toast naming the first failing field until it is fixed. Legacy components without a `validate()` contract are only checked at the field level.
+- Inline editor errors are rendered, and preview updates continue live regardless; clicking Save re-validates all required schema fields, `minItems`, and every component's `validate()` contract (all 22 components now implement one — `docs/ARCHITECTURE.md` §1), blocking saving with a toast naming the first failing field until it is fixed.
 - Importing a project creates a new project identity, but external resources referenced by its URLs are not copied or verified.
 
 ## Media limitations
@@ -52,7 +53,7 @@ See `docs/EXPORT-CONTRACT.md` for the full specification; the confirmed gaps are
 - Generated component output includes WCAG-oriented semantics and keyboard handling, but conformance still requires manual assistive-technology testing with authored content.
 - Alternative text/decorative choices and audio/video alternatives use visible, non-blocking warnings. Conditional field hiding is not implemented.
 - Theme contrast checks cover the configured token pairs at authoring time, but they cannot guarantee contrast for arbitrary uploaded imagery, rich text, browser states, or all component-specific combinations.
-- Automated axe/ARIA/keyboard test coverage exists for the six registered components and stable builder-shell regions only; the 15 legacy components have no automated accessibility assertions (`docs/ARCHITECTURE.md` §7).
+- Dedicated Playwright axe/keyboard-interaction assertions (`tests/e2e/accessibility.spec.js`) only exercise a handful of components (Accordion, Tabs, Grid Photo Gallery) and stable builder-shell regions directly; the remaining components rely on the unit-level structural/ARIA-markup and hostile-input coverage in `tests/unit/generators.test.js`, which now runs identically against all 22 (`docs/ARCHITECTURE.md` §7), but do not each have a dedicated e2e axe scan.
 
 ## Security and escaping
 
@@ -78,7 +79,7 @@ See `docs/SECURITY.md` for the full sanitization contract and threat model; the 
 - One test (`flip-card custom artwork uploads per face and removal restores the built-in icon`) is skipped on WebKit: Playwright's bundled WebKit build on Windows cannot store a `Blob` in IndexedDB at all in this environment (reproduced with zero application code — a bare `indexedDB.open(...).put({ blob })` fails with `"Error preparing Blob/File data to be stored in object store"`). This is a Playwright/WebKit-on-Windows test-environment limitation, not an app defect; real Safari is unaffected.
 - Firefox and WebKit don't support Playwright's `clipboard-read`/`clipboard-write` permission grants (a Chromium-only CDP permission). The export copy-to-clipboard test verifies the visible success state (button text/class, toast) on all three engines, but only reads back the actual clipboard contents on Chromium.
 - Automated E2E tests use a local static server, not Articulate Rise, Moodle, an LMS, or a production CSP/hosting configuration.
-- Unit coverage gates apply to state, persistence, themes, utilities, and the six registered generators. The large legacy preview compiler is exercised through integration and browser tests rather than included in the unit percentage.
+- Unit coverage gates apply to state, persistence, themes, utilities, and the component generators (`components/*.js`, all 22). The orchestrator (`js/preview.js`) and shared shell (`js/export-shell.js`) are exercised through the isolation/determinism unit tests and integration/browser tests rather than included in the coverage-gated file list.
 - No pixel-diff snapshots are maintained; visual regressions still require design review at representative viewport sizes.
 
 ## Tooling gaps (resolved in this phase, tracked here for history)

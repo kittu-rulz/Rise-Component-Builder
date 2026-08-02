@@ -13,9 +13,9 @@ test('content changes update the live preview', async ({ page }) => {
   await page.locator('#input-block-headline').fill('Updated live preview\nheadline');
   const frame = page.frameLocator('#live-preview-iframe');
   await expect(frame.locator('.block-label')).toHaveText('LEARNING\nACTIVITY');
-  await expect(frame.locator('#block-headline')).toHaveText('Updated live preview\nheadline');
+  await expect(frame.locator('[id$="-block-headline"]')).toHaveText('Updated live preview\nheadline');
   await expect(frame.locator('.block-label')).toHaveCSS('white-space', 'pre-line');
-  await expect(frame.locator('#block-headline')).toHaveCSS('white-space', 'pre-line');
+  await expect(frame.locator('[id$="-block-headline"]')).toHaveCSS('white-space', 'pre-line');
 });
 
 test('items can be added, duplicated, deleted, moved, and collapsed', async ({ page }) => {

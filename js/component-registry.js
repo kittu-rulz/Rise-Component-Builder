@@ -2,9 +2,25 @@ import { getEditorSchema } from './editor-schemas.js';
 import * as accordion from '../components/accordion.js';
 import * as tabs from '../components/tabs.js';
 import * as flipCards from '../components/flip-cards.js';
-import * as verticalTimeline from '../components/vertical-timeline.js';
+import * as hotspots from '../components/hotspots.js';
+import * as buttonList from '../components/button-list.js';
+import * as menuList from '../components/menu-list.js';
 import * as multipleChoice from '../components/multiple-choice.js';
 import * as multipleSelect from '../components/multiple-select.js';
+import * as sortingActivity from '../components/sorting-activity.js';
+import * as fillBlank from '../components/fill-blank.js';
+import * as verticalTimeline from '../components/vertical-timeline.js';
+import * as horizontalTimeline from '../components/horizontal-timeline.js';
+import * as processFlow from '../components/process-flow.js';
+import * as scenario from '../components/scenario.js';
+import * as profileCards from '../components/profile-cards.js';
+import * as infoGrid from '../components/info-grid.js';
+import * as pricingComparison from '../components/pricing-comparison.js';
+import * as audioPlayer from '../components/audio-player.js';
+import * as videoFrame from '../components/video-frame.js';
+import * as imageGallery from '../components/image-gallery.js';
+import * as aiGenerator from '../components/ai-generator.js';
+import * as aiQuizMaker from '../components/ai-quiz-maker.js';
 
 export const CATEGORIES = [
   { id: 'interactive', name: 'Interactive' },
@@ -29,7 +45,6 @@ function deriveMedia(schema) {
 }
 
 const SHARED_EXPORTER = { type: 'shared', module: 'js/export.js#buildExportPayload' };
-const LEGACY_RENDERER = { type: 'legacy', dispatch: 'js/preview.js#generateIframeContent' };
 
 function moduleRenderer(componentModule) {
   return {
@@ -40,7 +55,7 @@ function moduleRenderer(componentModule) {
   };
 }
 
-function fromModule(componentModule, { description, keywords, icon }) {
+function fromModule(componentModule, { description, keywords, icon, status = 'production' }) {
   const editorSchema = componentModule.editorSchema || getEditorSchema(componentModule.id);
   const { items, ...rest } = componentModule.defaultConfig;
   const defaultDesign = {};
@@ -67,30 +82,6 @@ function fromModule(componentModule, { description, keywords, icon }) {
     accessibilitySupport: true,
     media: deriveMedia(editorSchema),
     completionSupport: true,
-    status: 'production'
-  };
-}
-
-function legacyEntry({ id, name, categoryId, description, keywords, icon, items, status = 'production' }) {
-  const editorSchema = getEditorSchema(id);
-  return {
-    id,
-    name,
-    categoryId,
-    description,
-    keywords,
-    version: '1.0.0',
-    icon,
-    editorSchema,
-    defaultContent: { items },
-    defaultDesign: {},
-    defaultBehaviour: {},
-    renderer: LEGACY_RENDERER,
-    exporter: SHARED_EXPORTER,
-    validate: null,
-    accessibilitySupport: true,
-    media: deriveMedia(editorSchema),
-    completionSupport: true,
     status
   };
 }
@@ -111,43 +102,20 @@ export const COMPONENT_REGISTRY = [
     keywords: ['tabs', 'panels', 'horizontal', 'sections'],
     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="3" x2="9" y2="9"></line></svg>'
   }),
-  legacyEntry({
-    id: 'hotspots',
-    name: 'Interactive Hotspots',
-    categoryId: 'interactive',
+  fromModule(hotspots, {
     description: 'Place interactive click indicators over custom images to reveal explanatory tooltips and annotations.',
     keywords: ['image map', 'tooltip', 'annotations', 'clickable points'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line></svg>',
-    items: [
-      { title: 'Engine Valve', content: 'Manages the fuel-air mixture entry.', x: '25', y: '40' },
-      { title: 'Spark Plug', content: 'Triggers the combustion spark.', x: '50', y: '25' },
-      { title: 'Piston Rod', content: 'Transmits linear force to rotational crankshaft torque.', x: '75', y: '65' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line></svg>'
   }),
-  legacyEntry({
-    id: 'button-list',
-    name: 'Quick Link Buttons',
-    categoryId: 'navigation',
+  fromModule(buttonList, {
     description: 'Curated list of customized buttons directing learners to external resources or course milestones.',
     keywords: ['links', 'buttons', 'resources', 'navigation'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line></svg>',
-    items: [
-      { title: 'Launch Resource Hub', content: 'https://community.articulate.com' },
-      { title: 'Download User Manual', content: 'https://github.com' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect><line x1="3" y1="12" x2="21" y2="12"></line></svg>'
   }),
-  legacyEntry({
-    id: 'menu-list',
-    name: 'Secondary Menu Drawer',
-    categoryId: 'navigation',
+  fromModule(menuList, {
     description: 'Expandable sub-lesson links or glossary panels designed to sit natively inside your custom Rise blocks.',
     keywords: ['menu', 'drawer', 'glossary', 'sub-lesson'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>',
-    items: [
-      { title: 'Module 1: Getting Started', content: 'Introduction and setup basics.' },
-      { title: 'Module 2: Advanced Design', content: 'Explore layouts, shadows, and spacing.' },
-      { title: 'Module 3: Code Exporting', content: 'Embedding components inside SCORM courses.' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"></line><line x1="4" y1="6" x2="20" y2="6"></line><line x1="4" y1="18" x2="20" y2="18"></line></svg>'
   }),
   fromModule(multipleChoice, {
     description: 'Self-correcting interactive knowledge check card. Supports feedback answers and custom status.',
@@ -159,170 +127,76 @@ export const COMPONENT_REGISTRY = [
     keywords: ['quiz', 'select all', 'checkbox', 'assessment'],
     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><path d="M5 6.5l1 1 2-2"></path><rect x="14" y="3" width="7" height="7" rx="1"></rect><path d="M16 6.5l1 1 2-2"></path><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>'
   }),
-  legacyEntry({
-    id: 'sorting-activity',
-    name: 'Sorting Drag-and-Drop',
-    categoryId: 'knowledge',
+  fromModule(sortingActivity, {
     description: 'Let learners sort concept cards into category columns with instant matching indicator flags.',
     keywords: ['drag and drop', 'categorize', 'sorting', 'matching'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>',
-    items: [
-      { title: 'Vibrant Colors', content: 'Design System', category: 'Design' },
-      { title: 'Click Triggers', content: 'Interaction Logic', category: 'Logic' },
-      { title: 'Rounded Corners', content: 'Design System', category: 'Design' },
-      { title: 'Theme Toggles', content: 'Interaction Logic', category: 'Logic' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
   }),
-  legacyEntry({
-    id: 'fill-blank',
-    name: 'Fill-in-the-Blank',
-    categoryId: 'knowledge',
+  fromModule(fillBlank, {
     description: 'Interactive sentence checks. Great for verification of terminology, syntax, or statements.',
     keywords: ['cloze', 'fill in the blank', 'terminology', 'sentence'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="18" x2="19" y2="18"></line><line x1="5" y1="6" x2="19" y2="6"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
-    items: [
-      { title: 'Articulate Rise uses [blank] to display custom interactive content.', content: 'iframes' },
-      { title: 'To keep web builds lightweight, use [blank] CSS styles.', content: 'vanilla' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="18" x2="19" y2="18"></line><line x1="5" y1="6" x2="19" y2="6"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>'
   }),
   fromModule(verticalTimeline, {
     description: 'Elegant step indicators moving vertically. Designed with micro-animations on scroll/click.',
     keywords: ['timeline', 'steps', 'vertical', 'milestones'],
     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><circle cx="12" cy="5" r="3"></circle><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="19" r="3"></circle></svg>'
   }),
-  legacyEntry({
-    id: 'horizontal-timeline',
-    name: 'Horizontal Journey Map',
-    categoryId: 'timelines',
+  fromModule(horizontalTimeline, {
     description: 'Interactive slider card demonstrating chronological milestones, histories, or developmental processes.',
     keywords: ['timeline', 'journey map', 'history', 'slider'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><circle cx="5" cy="12" r="3"></circle><circle cx="12" cy="12" r="3"></circle><circle cx="19" cy="12" r="3"></circle></svg>',
-    items: [
-      { title: 'Phase 1: Research', content: 'Collect data assets, requirements, and verify targets.' },
-      { title: 'Phase 2: Build Layout', content: 'Configure colors, fonts, margins, and borders in the tool.' },
-      { title: 'Phase 3: Export HTML', content: 'Copy custom block and import inside Articulate Rise blocks.' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><circle cx="5" cy="12" r="3"></circle><circle cx="12" cy="12" r="3"></circle><circle cx="19" cy="12" r="3"></circle></svg>'
   }),
-  legacyEntry({
-    id: 'process-flow',
-    name: 'Step-by-Step Flow',
-    categoryId: 'process',
+  fromModule(processFlow, {
     description: 'Process block that hides future steps until the learner clicks "Next Step" to progress.',
     keywords: ['process', 'steps', 'next step', 'workflow'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>',
-    items: [
-      { title: 'Define Objectives', content: 'Align course content with measurable learner metrics.' },
-      { title: 'Create Visual Wireframes', content: 'Draft templates in the Rise Component Builder UI.' },
-      { title: 'Export SCORM Pack', content: 'Zip files and deploy directly inside the Rise lesson LMS.' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>'
   }),
-  legacyEntry({
-    id: 'scenario',
-    name: 'Branching Scenario Card',
-    categoryId: 'process',
+  fromModule(scenario, {
     description: 'Interactive mini-simulation where learner selections route to customized response dialogue paths.',
     keywords: ['branching scenario', 'simulation', 'decision', 'dialogue'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>',
-    items: [
-      { title: 'How should you write interactive eLearning scripts?', content: 'Short and conversational' },
-      { title: 'Choice A: Write dense documents.', content: 'Character: "That makes learning boring!" (Incorrect)' },
-      { title: 'Choice B: Write conversational steps.', content: 'Character: "Spot on! Keeps learners hooked!" (Correct)' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>'
   }),
-  legacyEntry({
-    id: 'profile-cards',
-    name: 'Modern Profile Grid',
-    categoryId: 'cards',
+  fromModule(profileCards, {
     description: 'Two-column interactive biography grids. Great for team intros, characters, or subject-matter experts.',
     keywords: ['team', 'bio', 'profile', 'people grid'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
-    items: [
-      { title: 'Sarah Jenkins', content: 'Lead Instructional Designer • Dedicated to creating engaging eLearning pathways.' },
-      { title: 'Marcus Chen', content: 'UX Engineer • Expert in web layout rendering and responsive CSS frameworks.' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>'
   }),
-  legacyEntry({
-    id: 'info-grid',
-    name: 'Multi-Column Info Grid',
-    categoryId: 'cards',
+  fromModule(infoGrid, {
     description: 'A flexible cards layout with beautiful SVG icons, description headers, and rounded card styling.',
     keywords: ['info cards', 'icons', 'grid layout', 'features'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>',
-    items: [
-      { title: 'SaaS Aesthetic', content: 'Vibrant custom colors, layered shadows, and large margins.' },
-      { title: 'Fully Serverless', content: 'Direct srcdoc codes containing styles and scripts.' },
-      { title: 'Responsive Shell', content: 'Adaptive grid layout structures for all target screens.' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>'
   }),
-  legacyEntry({
-    id: 'pricing-comparison',
-    name: 'Product Matrix Cards',
-    categoryId: 'cards',
+  fromModule(pricingComparison, {
     description: 'Interactive table matrix cards highlighting differences in programs, paths, or pricing packages.',
     keywords: ['pricing', 'comparison table', 'plans', 'matrix'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>',
-    items: [
-      { title: 'Starter Plan', content: '1 User • 5 Components/mo • Community Support' },
-      { title: 'Professional', content: 'Unlimited Builders • 20 Components/mo • Priority Support' },
-      { title: 'Enterprise Suite', content: 'Custom Domains • Unlimited Builders • Dedicated Success Agent' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>'
   }),
-  legacyEntry({
-    id: 'audio-player',
-    name: 'Circular Audio Player',
-    categoryId: 'media',
+  fromModule(audioPlayer, {
     description: 'Minimalist customized audio player block showing transcription texts and timeline seek bars.',
     keywords: ['audio', 'podcast', 'transcript', 'player'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>',
-    items: [
-      { title: 'Introduction Podcast (Audio Clip)', content: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>'
   }),
-  legacyEntry({
-    id: 'video-frame',
-    name: 'Custom Video Embed',
-    categoryId: 'media',
+  fromModule(videoFrame, {
     description: 'Sleek video player frame featuring custom overlay buttons and chapters list overlays.',
     keywords: ['video', 'embed', 'captions', 'player'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><polygon points="10 8 16 11.5 10 15 10 8"></polygon></svg>',
-    items: [
-      { title: 'Rise Builder Workspace Walkthrough', content: 'https://www.w3schools.com/html/mov_bbb.mp4' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><polygon points="10 8 16 11.5 10 15 10 8"></polygon></svg>'
   }),
-  legacyEntry({
-    id: 'image-gallery',
-    name: 'Grid Photo Gallery',
-    categoryId: 'media',
+  fromModule(imageGallery, {
     description: 'Responsive photo gallery with beautiful modal popups and image detail descriptions.',
     keywords: ['gallery', 'photos', 'modal', 'grid'],
-    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>',
-    items: [
-      { title: 'Workspace Design System', content: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800' },
-      { title: 'User Layout Journey', content: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=800' }
-    ]
+    icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>'
   }),
-  legacyEntry({
-    id: 'ai-generator',
-    name: 'AI Scenario Generator',
-    categoryId: 'ai',
+  fromModule(aiGenerator, {
     description: 'Generate complete multi-decision branching scenario blocks powered by AI within seconds.',
     keywords: ['ai', 'scenario generator', 'branching', 'automated'],
     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline><polyline points="7.5 19.79 12 17.19 16.5 19.79"></polyline><polyline points="7.5 12 12 14.6 16.5 12"></polyline></svg>',
-    items: [
-      { title: 'AI Branching Dialogue Prompt', content: 'Generate a customer conflict scenario for retail checkout.' }
-    ],
     status: 'experimental'
   }),
-  legacyEntry({
-    id: 'ai-quiz-maker',
-    name: 'AI Quiz generator',
-    categoryId: 'ai',
+  fromModule(aiQuizMaker, {
     description: 'Prompt an assessment topic and generate comprehensive mock quiz question structures instantly.',
     keywords: ['ai', 'quiz generator', 'assessment', 'automated'],
     icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>',
-    items: [
-      { title: 'AI Assessment Topic Prompt', content: 'Create a 5-question multiple choice quiz on Cyber Security basics.' }
-    ],
     status: 'experimental'
   })
 ];
@@ -349,6 +223,9 @@ export function validateRegistry(registry, categories = CATEGORIES) {
     if (!entry.defaultDesign || typeof entry.defaultDesign !== 'object') throw new Error(`Component "${label}" is missing default design values.`);
     if (!entry.defaultBehaviour || typeof entry.defaultBehaviour !== 'object') throw new Error(`Component "${label}" is missing default behaviour values.`);
     if (!entry.renderer || typeof entry.renderer.type !== 'string') throw new Error(`Component "${label}" is missing a renderer reference.`);
+    if (typeof entry.renderer.generateHTML !== 'function' || typeof entry.renderer.generateCSS !== 'function' || typeof entry.renderer.generateJS !== 'function') {
+      throw new Error(`Component "${label}" has an incomplete renderer (must implement generateHTML/generateCSS/generateJS).`);
+    }
     if (!entry.exporter || typeof entry.exporter.type !== 'string') throw new Error(`Component "${label}" is missing an exporter reference.`);
     if (!entry.media || typeof entry.media.required !== 'boolean' || !Array.isArray(entry.media.kinds)) throw new Error(`Component "${label}" has invalid media requirements.`);
     if (typeof entry.accessibilitySupport !== 'boolean') throw new Error(`Component "${label}" is missing accessibility support status.`);

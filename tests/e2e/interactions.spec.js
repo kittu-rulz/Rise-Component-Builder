@@ -42,7 +42,7 @@ test('flip cards support click, Enter, Space, announcements, and reduced motion'
   const cards = frame.locator('.flip-card');
   await cards.nth(0).click();
   await expect(cards.nth(0)).toHaveAttribute('aria-expanded', 'true');
-  await expect(frame.locator('#interaction-status')).not.toBeEmpty();
+  await expect(frame.locator('[id$="-interaction-status"]')).not.toBeEmpty();
   await cards.nth(0).press('Enter');
   await expect(cards.nth(0)).toHaveAttribute('aria-expanded', 'false');
   await cards.nth(1).press('Space');
@@ -53,7 +53,7 @@ test('flip cards support click, Enter, Space, announcements, and reduced motion'
 test('multiple choice validates missing selection and announces correct and incorrect feedback', async ({ page }) => {
   const frame = await openComponent(page, 'Multiple Choice Check', 'Knowledge Checks');
   const submit = frame.locator('.quiz-submit-btn');
-  const feedback = frame.locator('#quiz-feedback-box');
+  const feedback = frame.locator('[id$="-quiz-feedback-box"]');
   await submit.click();
   await expect(feedback).toContainText(/select|answer/i);
   await frame.locator('.quiz-option').nth(1).click();
@@ -69,7 +69,7 @@ test('multiple select toggles independent options and requires all correct answe
   const frame = await openComponent(page, 'Multiple Select Check', 'Knowledge Checks');
   const options = frame.locator('.quiz-option');
   const submit = frame.locator('.quiz-submit-btn');
-  const feedback = frame.locator('#quiz-feedback-box');
+  const feedback = frame.locator('[id$="-quiz-feedback-box"]');
 
   await submit.click();
   await expect(feedback).toContainText(/select/i);

@@ -108,6 +108,15 @@ test('export contains selected content and theme, excludes unsafe executable mar
   await expect(code).toContainText('--primary: #086F83');
   const exported = await code.textContent();
   expect(exported).not.toContain('<script>globalThis.bad=true</script>');
+
+  // Modular export pipeline: an Accordion export must not ship quiz, gallery, audio,
+  // video, or AI code (docs/EXPORT-CONTRACT.md).
+  ['quiz-option', 'gallery-item-card', 'audio-player-block', 'video-wrapper', 'ai-generator-preview']
+    .forEach(marker => expect(exported).not.toContain(marker));
+
+  // The generated file size must be visible to the author before download.
+  await expect(page.locator('#export-file-size')).toContainText(/\d+(\.\d+)?\s*(B|KB|MB)/);
+
   await page.getByRole('button', { name: 'Option B: HTML Block Fragment' }).click();
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#btn-download-html').click();
@@ -125,6 +134,14 @@ test('export contains selected content and theme, excludes unsafe executable mar
   await exportedPage.setContent(html);
   await expect(exportedPage.locator('.accordion-group')).toBeVisible();
   expect(errors).toEqual([]);
+
+  // Requirement 3/8: the downloaded file works standalone (no builder app), and keyboard
+  // interaction + ARIA state still function correctly post-refactor.
+  const trigger = exportedPage.locator('.accordion-trigger').first();
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false');
+  await trigger.focus();
+  await exportedPage.keyboard.press('Enter');
+  await expect(trigger).toHaveAttribute('aria-expanded', 'true');
 });
 
 test('export copy button copies iframe code and shows visible confirmation', async ({ page, context, browserName }) => {

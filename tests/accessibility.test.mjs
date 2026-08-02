@@ -4,15 +4,13 @@ import assert from 'node:assert/strict';
 import { generateIframeContent } from '../js/preview.js';
 import { editorSchemas } from '../js/editor-schemas.js';
 import { toRgba } from '../js/utilities.js';
-import * as accordion from '../components/accordion.js';
-import * as tabs from '../components/tabs.js';
-import * as flipCards from '../components/flip-cards.js';
-import * as verticalTimeline from '../components/vertical-timeline.js';
-import * as multipleChoice from '../components/multiple-choice.js';
+import { COMPONENT_REGISTRY } from '../js/component-registry.js';
 
-const registry = Object.fromEntries(
-  [accordion, tabs, flipCards, verticalTimeline, multipleChoice].map(component => [component.id, component])
-);
+// Every catalog component is a real module now (docs/ARCHITECTURE.md §1); use the full registry.
+const registry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, entry.renderer]));
+// stateFor() below never sets currentProjectId, so js/preview.js#getInstanceId deterministically
+// derives this fixed instance id prefix for every generated document in this file.
+const ID = 'rcb-preview';
 
 function stateFor(componentId, items) {
   return {
@@ -50,9 +48,9 @@ const contentItems = [
 
 test('shared preview shell exposes headings, progress, live status, focus, and reduced-motion support', () => {
   const html = generate('accordion', contentItems);
-  assert.match(html, /<main class="rise-block-wrapper" aria-labelledby="block-headline">/);
+  assert.match(html, new RegExp(`<main class="rise-block-wrapper" aria-labelledby="${ID}-block-headline">`));
   assert.match(html, /role="progressbar"[^>]+aria-valuenow="0"/);
-  assert.match(html, /id="interaction-status"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.match(html, new RegExp(`id="${ID}-interaction-status"[^>]+role="status"[^>]+aria-live="polite"`));
   assert.match(html, /:focus-visible/);
   assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(html, /@media \(forced-colors: active\)/);
@@ -60,13 +58,13 @@ test('shared preview shell exposes headings, progress, live status, focus, and r
 
 test('accordion, tabs, flip cards, and quiz expose their required widget states', () => {
   const accordionHtml = generate('accordion', contentItems);
-  assert.match(accordionHtml, /aria-expanded="false" aria-controls="accordion-panel-0"/);
-  assert.match(accordionHtml, /role="region" aria-labelledby="accordion-trigger-0"/);
+  assert.match(accordionHtml, new RegExp(`aria-expanded="false" aria-controls="${ID}-accordion-panel-0"`));
+  assert.match(accordionHtml, new RegExp(`role="region" aria-labelledby="${ID}-accordion-trigger-0"`));
 
   const tabsHtml = generate('tab-blocks', contentItems);
   assert.match(tabsHtml, /role="tablist"/);
   assert.match(tabsHtml, /role="tab" aria-selected="true"/);
-  assert.match(tabsHtml, /role="tabpanel" aria-labelledby="tab-0"/);
+  assert.match(tabsHtml, new RegExp(`role="tabpanel" aria-labelledby="${ID}-tab-0"`));
   assert.match(tabsHtml, /event\.key === 'ArrowRight'/);
 
   const flipHtml = generate('flip-cards', contentItems);
@@ -76,7 +74,7 @@ test('accordion, tabs, flip cards, and quiz expose their required widget states'
   const quizHtml = generate('multiple-choice', contentItems);
   assert.match(quizHtml, /role="radiogroup"/);
   assert.match(quizHtml, /role="radio" tabindex="0" aria-checked="false"/);
-  assert.match(quizHtml, /id="quiz-feedback-box"[^>]+role="status"/);
+  assert.match(quizHtml, new RegExp(`id="${ID}-quiz-feedback-box"[^>]+role="status"`));
 });
 
 test('hotspots, sorting, blanks, timelines, process, and scenario have keyboard and announcement hooks', () => {
@@ -86,9 +84,9 @@ test('hotspots, sorting, blanks, timelines, process, and scenario have keyboard 
   assert.match(hotspots, /event\.key === 'Escape'/);
 
   const sorting = generate('sorting-activity', contentItems);
-  assert.match(sorting, /aria-describedby="sorting-instructions"/);
+  assert.match(sorting, new RegExp(`aria-describedby="${ID}-sorting-instructions"`));
   assert.match(sorting, /class="target-btn"[^>]+aria-pressed="false"/);
-  assert.match(sorting, /id="sorting-feedback-box"[^>]+aria-live="polite"/);
+  assert.match(sorting, new RegExp(`id="${ID}-sorting-feedback-box"[^>]+aria-live="polite"`));
 
   const blanks = generate('fill-blank', [{ title: 'The answer is [blank].', content: 'accessible' }]);
   assert.match(blanks, /aria-label="Answer for sentence 1"/);
@@ -96,7 +94,7 @@ test('hotspots, sorting, blanks, timelines, process, and scenario have keyboard 
 
   const horizontal = generate('horizontal-timeline', contentItems);
   assert.match(horizontal, /aria-label="Timeline steps"/);
-  assert.match(horizontal, /role="tabpanel" aria-labelledby="timeline-tab-0"/);
+  assert.match(horizontal, new RegExp(`role="tabpanel" aria-labelledby="${ID}-timeline-tab-0"`));
 
   const vertical = generate('vertical-timeline', contentItems);
   assert.match(vertical, /role="list" aria-label="Timeline"/);
@@ -107,7 +105,7 @@ test('hotspots, sorting, blanks, timelines, process, and scenario have keyboard 
   assert.match(process, /aria-live="polite" aria-atomic="true"/);
 
   const scenario = generate('scenario', contentItems);
-  assert.match(scenario, /id="scenario-feedback-card"[^>]+role="status"/);
+  assert.match(scenario, new RegExp(`id="${ID}-scenario-feedback-card"[^>]+role="status"`));
 });
 
 test('media and gallery output includes alternatives, accessible controls, and dialog behavior', () => {

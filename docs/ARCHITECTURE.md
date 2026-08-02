@@ -20,25 +20,27 @@ v2/
 ├── playwright.config.js         Browser test and local server configuration
 ├── js/
 │   ├── state.js                In-memory application state and base config           → §1/§8 boundary
-│   ├── catalog.js              Component registry metadata and catalog rendering      → §1 boundary
+│   ├── component-registry.js   Authoritative component/category metadata registry     → §1 boundary
+│   ├── catalog.js              Thin UI adapter over the registry (search/cards)        → §1 boundary
 │   ├── editor-schemas.js       Per-component item-field schemas                       → §2 boundary
 │   ├── editor.js               Schema-driven editor rendering and validation          → §3/§10 boundary
 │   ├── storage.js              Versioned localStorage persistence                     → §8 boundary
 │   ├── themes.js               Theme presets, validation, token resolution, contrast  → §6 boundary
-│   ├── preview.js              Shared HTML/CSS/JS compiler + iframe/popout writers    → §4/§5 boundary
+│   ├── preview.js              Thin compiler orchestrator + iframe/popout writers     → §4/§5 boundary
+│   ├── export-shell.js         Shared document shell, tokens wiring, shared a11y JS/CSS → §4/§7 boundary
 │   ├── export.js               Export payload assembly, media asset packaging, downloads → §5 boundary
 │   ├── media.js                File rules, signatures, SVG safety, a11y warnings       → §9/§10 boundary
 │   ├── media-storage.js        IndexedDB records and runtime object-URL lifecycle      → §9 boundary
 │   ├── media-upload.js         Reusable browse/drop/preview upload control             → §3/§9 boundary
 │   ├── utilities.js            Escaping, sanitization, URL/Blob helpers                → §7/§10 boundary
 │   └── toast.js                Reusable toast notifications
-├── components/                 Modular component registrations (registry entries)      → §1 boundary
-│   ├── accordion.js
-│   ├── tabs.js
-│   ├── flip-cards.js
-│   ├── vertical-timeline.js
-│   ├── multiple-choice.js
-│   └── multiple-select.js
+├── components/                 All 22 components: id/name/category/defaultConfig/
+│   │                            editorSchema/generateHTML/generateCSS/generateJS/validate → §1 boundary
+│   ├── accordion.js, tabs.js, flip-cards.js, hotspots.js, button-list.js, menu-list.js,
+│   │   multiple-choice.js, multiple-select.js, sorting-activity.js, fill-blank.js,
+│   │   vertical-timeline.js, horizontal-timeline.js, process-flow.js, scenario.js,
+│   │   profile-cards.js, info-grid.js, pricing-comparison.js, audio-player.js,
+│   │   video-frame.js, image-gallery.js, ai-generator.js, ai-quiz-maker.js
 ├── docs/                        Canonical documentation (this file and its siblings)
 └── tests/
     ├── fixtures/                Reusable project/theme/content fixtures
@@ -66,23 +68,23 @@ Each boundary below names the file(s) that own it, what may cross the boundary, 
 
 ### 1. Component registry
 
-**Owns:** `js/catalog.js` (catalog metadata: id, title, description, category, icon) + `components/*.js` (behavior: `id`, `name`, `category`, `defaultConfig`, `editorSchema`, `generateHTML`, `generateCSS`, `generateJS`, `validate`).
+**Owns:** `js/component-registry.js` (catalog metadata: description, keywords, version, icon, status, media/accessibility/completion flags) + `components/*.js` (behavior: `id`, `name`, `category`, `defaultConfig`, `editorSchema`, `generateHTML`, `generateCSS`, `generateJS`, `validate`). `js/catalog.js` is a thin UI-facing adapter over the registry (search/filter/card rendering); it owns no data of its own.
 
-The registry is the map from a `componentId` string to everything needed to edit, preview, and export that component. `app.js` builds `componentRegistry` once at module load by importing every `components/*.js` module and indexing it by `id`:
+**All 22 catalog components are real modules implementing the full five-function contract** — there is no legacy dispatch branch anywhere. `js/component-registry.js` builds `COMPONENT_REGISTRY` by importing every `components/*.js` module (`fromModule(...)`); `app.js` derives the id → renderer map the compiler needs, plus each entry's `validate`, from that single registry:
 
 ```js
 const componentRegistry = Object.fromEntries(
-  [accordion, tabs, flipCards, verticalTimeline, multipleChoice, multipleSelect].map(component => [component.id, component])
+  COMPONENT_REGISTRY.map(entry => [entry.id, { ...entry.renderer, validate: entry.validate }])
 );
 ```
 
-**Current state:** 6 of 21 catalog entries (`accordion`, `tab-blocks`, `flip-cards`, `vertical-timeline`, `multiple-choice`, `multiple-select`) are registered this way. The remaining 15 are _not yet in the registry_ — their markup/CSS/JS generation is a conditional branch inside `js/preview.js` (§4), and their default sample data is a conditional in `app.js`, keyed by the same `componentId` strings that `js/catalog.js` defines. This is tracked as debt, not hidden: see `docs/KNOWN-ISSUES.md`. **The registry contract itself (the five function names and the metadata shape) is the target every future component migration must match — no new component-specific special forms should be invented.**
+`validateRegistry()` (`js/component-registry.js`) runs once at module load and throws immediately — naming the offending component and field — on a duplicate id, an unknown category, a missing renderer function, or any other malformed entry, so a broken registry fails fast in development rather than silently misrendering.
 
-**Rule going forward:** a new component is "registered" only when it exports the same five-function/`defaultConfig`/`editorSchema` shape as the existing six. Nothing outside `components/*.js` and `js/catalog.js` should need to know a component's id to add support for it (the current legacy branches in `preview.js`/`app.js` are the exception being paid down, not the pattern to extend).
+**Rule going forward:** a component is only ever added by giving it a full `components/*.js` module (the five-function/`defaultConfig`/`editorSchema` shape) and a `js/component-registry.js` entry. Nothing outside `components/*.js` and `js/component-registry.js` should need to know a component's id to add support for it — there is no special-form escape hatch left to extend.
 
 ### 2. Component data / schema
 
-**Owns:** `js/editor-schemas.js` (per-component `itemFields`/`componentFields`, `minItems`, `itemLabel`) and, for the 6 registered components, each component module's own `editorSchema`/`defaultConfig` export.
+**Owns:** `js/editor-schemas.js` (per-component `itemFields`/`componentFields`, `minItems`, `itemLabel`) and each of the 22 component modules' own `editorSchema`/`defaultConfig` export.
 
 A schema is data, not behavior: a list of field descriptors (`id`, `label`, `type`, `default`, `required`, `min`/`max`, `pattern`, `options`, …). `js/catalog.js` attaches the resolved schema to each catalog entry via `getEditorSchema(componentId)`. `createDefaultItem(schema)` derives a blank item purely from that schema. Full schema field semantics live in `docs/COMPONENT-SCHEMA.md`.
 
@@ -94,19 +96,20 @@ A schema is data, not behavior: a list of field descriptors (`id`, `label`, `typ
 
 `app.js` supplies `appState.config.items` plus the active schema to `createSchemaItemEditor({ container, onChange })` and receives a generic `onChange` callback that triggers re-preview and draft persistence. Shared header/style/behavior fields (block title, colors, radius, behavior toggles) remain static markup in `index.html`, synchronized directly by `app.js` — they are not schema-driven because every component shares the same set of them.
 
-**Rule:** `js/editor.js` never knows a specific `componentId`. It only knows field _types_ (`supportedEditorFieldTypes`) and the generic schema shape from §2. Component-specific authoring logic belongs in a component module's own code (for the 6 registered components) or is not yet supported (for the legacy 15).
+**Rule:** `js/editor.js` never knows a specific `componentId`. It only knows field _types_ (`supportedEditorFieldTypes`) and the generic schema shape from §2. Component-specific authoring logic belongs in a component module's own code.
 
 ### 4. Preview rendering
 
-**Owns:** `js/preview.js` → `generateIframeContent(appState, componentRegistry, colorToRgba)`.
+**Owns:** `js/preview.js` → `generateIframeContent(appState, componentRegistry, colorToRgba)` (orchestration) + `js/export-shell.js` (the shared shell/tokens/accessibility layer it composes).
 
-This function is the single HTML/CSS/JS document compiler for the whole application. It:
+`generateIframeContent()` is the single HTML/CSS/JS document compiler for the whole application, and it is now a thin orchestrator over the modular pipeline documented in full in `docs/EXPORT-CONTRACT.md`:
 
 1. Resolves the active theme + component overrides into token values (`js/themes.js`, §6).
-2. Sanitizes the component configuration for the selected `componentId` (`sanitizePreviewConfig`, `js/utilities.js`, §10).
-3. Delegates to `componentRegistry[componentId]` when the component is registered (§1); otherwise falls back to a legacy conditional branch inside this same file.
-4. Assembles one complete HTML document — CSP meta tag, scoped inline `<style>`, interaction `<script>` — and returns it as a string.
-5. Live-preview callers write that string to `iframe.srcdoc` via `writePreview()`; the "pop out preview" affordance opens a new window and calls `document.write()` on the identical string via `openPreview()`.
+2. Sanitizes the component configuration for the selected `componentId` (`sanitizePreviewConfig`, `js/utilities.js`, §10) — the single sanitization boundary every component module's input has already passed through.
+3. Looks up `componentRegistry[componentId]` (§1 — always found; there is no fallback branch) and computes a deterministic `instanceId` from the current project id.
+4. Calls that component's own `generateHTML(config, instanceId)`, `generateCSS()`, and `generateJS(config, instanceId)` — only the active component's markup/CSS/JS are ever included.
+5. Passes those pieces to `js/export-shell.js#renderShell()`, which assembles the complete document — CSP meta tag, fonts, shared design tokens, shared reset/accessibility CSS, block header, completion tracker, the component's own `<style>` content, and a single combined `<script>` IIFE (shared accessibility utilities + the component's own JS) — and returns it as a string.
+6. Live-preview callers write that string to `iframe.srcdoc` via `writePreview()`; the "pop out preview" affordance opens a new window and calls `document.write()` on the identical string via `openPreview()`.
 
 **Rule — no forking:** `generateIframeContent()` is also the function §5 (export) calls. There must never be a second code path that independently re-implements a component's markup for export. If export needs something preview doesn't (e.g. asset URL rewriting), that transform is applied to preview's _output_, never by re-deriving markup from `appState` a second time. See `docs/EXPORT-CONTRACT.md` for the exact contract this guarantees.
 
@@ -137,14 +140,13 @@ This is the single source of truth for the theme schema (`schemaVersion`, identi
 
 ### 7. Shared accessibility utilities
 
-**Owns:** cross-cutting, not a single file — the accessibility contract is split by concern:
+**Owns:** cross-cutting, split by concern:
 
-- **Structural/semantic accessibility of generated output** (ARIA roles/states, keyboard handling, focus management, `aria-live` announcements) is generated per-component inside `js/preview.js` (legacy branches) or a component module's `generateHTML`/`generateJS` (the 6 registered components). There is currently no shared helper library for this — each generator writes its own ARIA wiring, which is why automated a11y coverage for the 15 unregistered components lags behind the 6 registered ones (`docs/KNOWN-ISSUES.md`).
+- **Shared completion/progress accessibility** (the `announce`/`updateProgress`/`updateTrackerComplete`/`setProgressAccessibility` functions, the `.sr-only`/focus-visible/`prefers-reduced-motion`/`forced-colors` CSS) live in `js/export-shell.js#renderSharedA11yScript`/`SHARED_A11Y_CSS` — one implementation every component calls into, not duplicated per component.
+- **Structural/semantic accessibility specific to one component** (ARIA roles/states, keyboard handling, focus management for that component's own interaction pattern — e.g. roving tabindex in tabs/timeline, `aria-expanded` on the accordion) is generated inside that component module's own `generateHTML`/`generateJS` (`components/*.js`). Each of the 22 components owns its own ARIA wiring; there is no legacy branch left outside this pattern.
 - **Authoring-time accessibility guidance** (alt-text/decorative warnings, transcript/caption warnings) lives in `js/media.js` (`validateMediaAccessibility`) — always advisory `warnings`, never a blocking error, surfaced by `app.js`/`js/editor.js` next to the relevant field.
 - **Contrast evaluation** lives in `js/themes.js` (§6).
 - **Escaping that keeps assistive-technology-relevant text safe to render** (rich text, attributes) lives in `js/utilities.js` (§10).
-
-**Planned:** extracting the repeated ARIA/keyboard patterns (roving tabindex, `aria-expanded` toggles, live-region announcements) that currently exist independently in each generator into one shared preview-side helper module, once enough of the 15 legacy components have been migrated into the registry (§1) for the duplication to be worth collapsing. Not done in this phase — see "Deferred work" in the project's audit trail.
 
 ### 8. Project persistence
 
@@ -197,14 +199,15 @@ There is no inbound message listener, no other outbound message type, and no oth
 
 ## Automated test architecture
 
-Vitest runs module-level and generated-output integration tests; jsdom is used only where DOM parsing is required. V8 coverage gates the directly unit-tested state/storage/theme/utility/modular-generator layers at 70% statements / 60% branches / 70% functions / 70% lines. Playwright drives Chromium, Firefox, and desktop WebKit against a dependency-free local static server, covering the shell, schema editor, iframe preview, the six modular interactions, persistence, downloads, responsive sizes, and accessibility. Full strategy, browser-specific caveats, and the current commands are in `docs/TESTING-STRATEGY.md`.
+Vitest runs module-level and generated-output integration tests; jsdom is used only where DOM parsing is required. V8 coverage gates the directly unit-tested state/storage/theme/utility/modular-generator layers at 70% statements / 60% branches / 70% functions / 70% lines. `tests/unit/generators.test.js` exercises all 22 components against hostile-input fixtures; `tests/unit/export-isolation.test.js` and `tests/unit/export-determinism.test.js` structurally prove per-component isolation and deterministic/collision-free output (`docs/EXPORT-CONTRACT.md`). Playwright drives Chromium, Firefox, and desktop WebKit against a dependency-free local static server, covering the shell, schema editor, iframe preview, component interactions, persistence, downloads, responsive sizes, and accessibility. Full strategy, browser-specific caveats, and the current commands are in `docs/TESTING-STRATEGY.md`.
 
 ## Important dependencies (who may import whom)
 
 - `app.js` is the central coordinator and is the only module allowed to depend on _every_ other module — it is the composition root.
-- `catalog.js` depends on `editor-schemas.js` only.
+- `component-registry.js` is the only module that imports every `components/*.js` module directly; `catalog.js` depends only on `component-registry.js`.
 - `editor.js` depends on `editor-schemas.js`, `utilities.js` (rich-text sanitization), `media.js`, and `media-upload.js`.
-- `preview.js` depends on `themes.js`, `utilities.js`, `media-storage.js`, and the component registry passed in by `app.js` — it does not import `components/*.js` directly, keeping the registry composition decision in `app.js`.
+- `preview.js` depends on `themes.js`, `utilities.js`, `media-storage.js`, `export-shell.js`, and the component registry passed in by `app.js` — it does not import `components/*.js` directly, keeping the registry composition decision in `app.js`/`component-registry.js`.
+- `export-shell.js` has no dependency on `components/*.js` either — it only assembles pieces `preview.js` hands it.
 - `export.js` depends on `utilities.js`, `media.js`, and `media-storage.js`, and consumes (never regenerates) the HTML string produced by `preview.js`.
 - `storage.js` depends on `media.js` (`isMediaReference`) and `themes.js` (theme validation) — it defines the project format everything else reads.
 - `media-upload.js` depends on `media.js` (validation) and `media-storage.js` (persistence).
