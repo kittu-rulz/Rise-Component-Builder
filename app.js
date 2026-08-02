@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inputBehaviorAccordionMulti = document.getElementById('input-behavior-accordion-multi');
   const inputBehaviorAccordionAnimation = document.getElementById('input-behavior-accordion-animation');
   const selectIconStyle = document.getElementById('select-icon-style');
+  const accordionBehaviorGroup = document.getElementById('accordion-behavior-group');
   const inputTrackCompletion = document.getElementById('input-track-completion');
   const inputCompletionMsg = document.getElementById('input-completion-msg');
   
@@ -495,7 +496,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     activeComponentTitle.innerText = component.title;
     activeComponentCategory.innerText = component.category.toUpperCase();
-    
+    updateAccordionBehaviorVisibility(component.id);
+
     // Sync block text items with defaults/reset if needed
     inputBlockTitle.value = component.title.toUpperCase();
     inputBlockHeadline.value = `Explore details about ${component.title}`;
@@ -935,6 +937,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('settings-limit-svg').value = appState.settings.mediaLimitsMb.svg;
   }
 
+  // accordionMulti/accordionAnimation/iconStyle only affect the Accordion (components/accordion.js);
+  // every other component ignores them, so hide the controls rather than show inert options.
+  function updateAccordionBehaviorVisibility(componentId) {
+    accordionBehaviorGroup.hidden = componentId !== 'accordion';
+  }
+
   function syncEditorControls() {
     syncResolvedThemeConfig();
     const config = appState.config;
@@ -952,6 +960,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     inputBehaviorAccordionMulti.checked = config.accordionMulti;
     inputBehaviorAccordionAnimation.checked = config.accordionAnimation;
     selectIconStyle.value = config.iconStyle;
+    updateAccordionBehaviorVisibility(appState.selectedComponent.id);
     inputTrackCompletion.checked = config.trackCompletion;
     inputCompletionMsg.value = config.completionMsg;
     activeComponentTitle.innerText = appState.selectedComponent.title;
