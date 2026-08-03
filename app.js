@@ -15,8 +15,9 @@ import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditor
 import { writePreview, openPreview, generateIframeContent as compilePreview, COMPONENT_MAX_WIDTH } from './js/preview.js';
 import { getDeviceWidthLabel } from './js/device-preview.js';
 import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, formatExportedFileSize, getExportedFileSize, prepareMediaExport } from './js/export.js';
-import { copyTextToClipboard, toRgba as colorToRgba } from './js/utilities.js';
+import { copyTextToClipboard, escapeHTML, toRgba as colorToRgba } from './js/utilities.js';
 import { showToast } from './js/toast.js';
+import { COMPATIBILITY_TIERS, getExportFormatCompatibility } from './js/compatibility.js';
 import { resolveMediaLimits, validateMediaAccessibility } from './js/media.js';
 import { pruneMediaObjectURLs, releaseAllMediaObjectURLs, restoreMediaReferences } from './js/media-storage.js';
 import {
@@ -1301,6 +1302,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Export compatibility report — shown before any download/copy action, sourced from
+  // js/compatibility.js so the UI never asserts a host-compatibility claim the docs don't.
+  function renderExportCompatibilityReport(formatKey) {
+    const container = document.getElementById('export-compatibility-report');
+    if (!container) return;
+    const entry = getExportFormatCompatibility(formatKey);
+    if (!entry) { container.innerHTML = ''; return; }
+    const tier = COMPATIBILITY_TIERS[entry.tier];
+    container.innerHTML = `
+      <div class="compat-report-header">
+        <span class="compat-report-title">Compatibility</span>
+        <span class="compat-badge ${tier.badgeClass}">${tier.label}</span>
+      </div>
+      <p class="compat-report-summary">${escapeHTML(entry.summary)}</p>
+      <ul class="compat-report-details">${entry.details.map(detail => `<li>${escapeHTML(detail)}</li>`).join('')}</ul>
+    `;
+  }
+
   // Export Tab Toggle Options
   const exportTabs = document.querySelectorAll('.export-tab');
   const exportPanes = document.querySelectorAll('.export-pane');
@@ -1308,10 +1327,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     tab.addEventListener('click', () => {
       exportTabs.forEach(t => t.classList.remove('active'));
       exportPanes.forEach(p => p.classList.remove('active'));
-      
+
       tab.classList.add('active');
       const paneId = `pane-export-${tab.getAttribute('data-export-type')}`;
       document.getElementById(paneId).classList.add('active');
+      renderExportCompatibilityReport(tab.getAttribute('data-export-type'));
     });
   });
 
@@ -1357,6 +1377,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function setupExportModalContent() {
+    const activeTab = document.querySelector('.export-tab.active');
+    renderExportCompatibilityReport(activeTab ? activeTab.getAttribute('data-export-type') : 'iframe');
     const warningBox = document.getElementById('export-media-warning');
     const manifestCode = document.getElementById('export-asset-manifest');
     if (warningBox) { warningBox.hidden = false; warningBox.classList.add('is-loading'); warningBox.textContent = 'Preparing media export…'; }

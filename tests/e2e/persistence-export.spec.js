@@ -156,7 +156,7 @@ test('export copy button copies iframe code and shows visible confirmation', asy
   await openAccordion(page);
   await page.locator('#btn-export').click();
 
-  const riseInstructions = page.locator('.instructions-alert').filter({ hasText: 'How to use in Articulate Rise' });
+  const riseInstructions = page.locator('.instructions-alert').filter({ hasText: 'Suggested steps in Articulate Rise' });
   await expect(riseInstructions).toContainText('Code');
   await expect(riseInstructions).toContainText('Add code');
   const expectedCode = await page.locator('#export-iframe-code').textContent();

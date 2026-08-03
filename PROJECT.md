@@ -35,6 +35,7 @@ Rise Component Builder is a browser-based internal authoring tool for creating c
 - Visible image-upload guidance listing supported formats, limits, and schema-specific preferred dimensions
 - IndexedDB storage for uploaded images, audio, video, posters, and WebVTT captions
 - Media-aware standalone export validation and ZIP asset-manifest preparation
+- An in-app export compatibility report (Confirmed/Experimental/Fallback/Unsupported per export format), backed by `docs/RISE-COMPATIBILITY-MATRIX.md`, manual Rise/Moodle/SCORM test checklists, and a results log — see `docs/COMPATIBILITY-RESULTS.md`
 
 ## Supported component types
 
@@ -97,7 +98,7 @@ There is no application framework, production bundler, backend, or external data
 - The application is a local browser MVP and has no collaboration, authentication, server sync, or deployment workflow.
 - Chromium is the initial automated browser target; Firefox, WebKit, Rise, Moodle, and assistive-technology verification remain manual.
 
-See `docs/KNOWN-ISSUES.md` for confirmed implementation details, `docs/ARCHITECTURE.md` for module boundaries, `docs/COMPONENT-SCHEMA.md` for the data model, `docs/EXPORT-CONTRACT.md` for how preview and export stay in sync, `docs/SECURITY.md` for the sanitization/threat model, and `docs/TESTING-STRATEGY.md` for the test/lint/typecheck/build pipeline.
+See `docs/KNOWN-ISSUES.md` for confirmed implementation details, `docs/ARCHITECTURE.md` for module boundaries, `docs/COMPONENT-SCHEMA.md` for the data model, `docs/EXPORT-CONTRACT.md` for how preview and export stay in sync, `docs/SECURITY.md` for the sanitization/threat model, `docs/TESTING-STRATEGY.md` for the test/lint/typecheck/build pipeline, and `docs/RISE-COMPATIBILITY-MATRIX.md` (with `docs/RISE-TEST-CHECKLIST.md`, `docs/MOODLE-SCORM-TEST-CHECKLIST.md`, and `docs/COMPATIBILITY-RESULTS.md`) for Rise/LMS/browser compatibility classification.
 
 ## MVP objectives
 

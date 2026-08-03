@@ -44,9 +44,10 @@ See `docs/EXPORT-CONTRACT.md` for the full specification; the confirmed gaps are
 
 - Self-contained `srcdoc` output depends on browser support and the permissions in the iframe sandbox.
 - HTML fragment export assumes the target accepts inline styles and scripts.
-- External media and Google Fonts require network access after export.
+- External media requires network access after export; Google Fonts does too, but degrades gracefully to a system sans-serif font when unreachable (confirmed by `tests/e2e/exported-fixtures.spec.js`) rather than breaking.
 - Small raster images can be embedded in standalone HTML. SVG, large images, audio, video, and captions are converted to asset-relative paths and block the single-file download with a warning.
-- The ZIP preparation layer produces a manifest and internal Blob list, but it does not yet create or download an archive containing those assets.
+- The ZIP preparation layer produces a manifest and internal Blob list, but it does not yet create or download an archive containing those assets. SCORM 1.2/2004 packaging does not exist at all.
+- Full Rise/Moodle/SCORM compatibility classification, an in-app compatibility report, and manual test checklists are now tracked in `docs/RISE-COMPATIBILITY-MATRIX.md`, `docs/RISE-TEST-CHECKLIST.md`, `docs/MOODLE-SCORM-TEST-CHECKLIST.md`, and `docs/COMPATIBILITY-RESULTS.md` — see those for exactly what is Confirmed vs. Experimental vs. Fallback vs. Unsupported, and why.
 
 ## Accessibility gaps
 
@@ -54,6 +55,7 @@ See `docs/EXPORT-CONTRACT.md` for the full specification; the confirmed gaps are
 - Alternative text/decorative choices and audio/video alternatives use visible, non-blocking warnings. Conditional field hiding is not implemented.
 - Theme contrast checks cover the configured token pairs at authoring time, but they cannot guarantee contrast for arbitrary uploaded imagery, rich text, browser states, or all component-specific combinations.
 - Dedicated Playwright axe/keyboard-interaction assertions (`tests/e2e/accessibility.spec.js`) only exercise a handful of components (Accordion, Tabs, Grid Photo Gallery) and stable builder-shell regions directly; the remaining components rely on the unit-level structural/ARIA-markup and hostile-input coverage in `tests/unit/generators.test.js`, which now runs identically against all 22 (`docs/ARCHITECTURE.md` §7), but do not each have a dedicated e2e axe scan.
+- `tests/e2e/exported-fixtures.spec.js` adds standalone (non-builder-embedded) keyboard-operability coverage for 7 components — Accordion, Flip Cards, Tabs, Multiple Choice, Hotspots, Vertical Timeline, Audio Player — closing the pre-existing gap where Hotspots and Audio/Video had no dedicated e2e keyboard test at all (`tests/e2e/interactions.spec.js` covers the other 5 of these 7). The remaining 15 components still rely only on the unit-level coverage above for keyboard behavior.
 
 ## Security and escaping
 
@@ -78,7 +80,7 @@ See `docs/SECURITY.md` for the full sanitization contract and threat model; the 
 - **Firefox e2e: 12 tests fail in this audit/development sandbox** with `page.goto` / page-setup timeouts (30s) — never reaching an application assertion. Chromium and WebKit pass fully. This looks like sandbox launch-latency rather than an application defect, but is **unconfirmed against an unrestricted environment (e.g. the project's actual GitHub Actions runner)** as of this phase. Re-verify there before treating Firefox support as either broken or fine. See `docs/TESTING-STRATEGY.md`.
 - One test (`flip-card custom artwork uploads per face and removal restores the built-in icon`) is skipped on WebKit: Playwright's bundled WebKit build on Windows cannot store a `Blob` in IndexedDB at all in this environment (reproduced with zero application code — a bare `indexedDB.open(...).put({ blob })` fails with `"Error preparing Blob/File data to be stored in object store"`). This is a Playwright/WebKit-on-Windows test-environment limitation, not an app defect; real Safari is unaffected.
 - Firefox and WebKit don't support Playwright's `clipboard-read`/`clipboard-write` permission grants (a Chromium-only CDP permission). The export copy-to-clipboard test verifies the visible success state (button text/class, toast) on all three engines, but only reads back the actual clipboard contents on Chromium.
-- Automated E2E tests use a local static server, not Articulate Rise, Moodle, an LMS, or a production CSP/hosting configuration.
+- Automated E2E tests use a local static server, not Articulate Rise, Moodle, an LMS, or a production CSP/hosting configuration. Testing inside those specific hosts is manual-only by necessity — see `docs/RISE-TEST-CHECKLIST.md` and `docs/MOODLE-SCORM-TEST-CHECKLIST.md` — and no such manual run has been logged yet (`docs/COMPATIBILITY-RESULTS.md`).
 - Unit coverage gates apply to state, persistence, themes, utilities, and the component generators (`components/*.js`, all 22). The orchestrator (`js/preview.js`) and shared shell (`js/export-shell.js`) are exercised through the isolation/determinism unit tests and integration/browser tests rather than included in the coverage-gated file list.
 - No pixel-diff snapshots are maintained; visual regressions still require design review at representative viewport sizes.
 

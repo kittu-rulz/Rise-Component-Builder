@@ -367,13 +367,13 @@
                 </div>
 
                 <div class="form-group-card">
-                  <div class="group-title">eLearning Tracking (Rise Integration)</div>
+                  <div class="group-title">eLearning Completion Tracking</div>
 
                   <div class="checkbox-wrapper">
                     <input type="checkbox" id="input-track-completion">
                     <label for="input-track-completion">Require user to view all items to complete block</label>
                   </div>
-                  <p class="field-hint field-hint-inset">Marks this block complete in Rise once every item has been opened.</p>
+                  <p class="field-hint field-hint-inset">Shows an in-block progress bar and sends a completion signal to the host page. Whether the host (e.g. Rise) actually listens for that signal and marks its own lesson complete is not guaranteed by this project — see docs/RISE-COMPATIBILITY-MATRIX.md.</p>
 
                   <div class="input-wrapper">
                     <label for="input-completion-msg">Completion Success Message</label>
@@ -503,33 +503,36 @@
         <button class="modal-close-btn" aria-label="Close Export Custom Block dialog">&times;</button>
       </div>
       <div class="modal-body">
+        <div id="export-compatibility-report" class="compat-report" role="status" aria-live="polite"></div>
+
         <div class="export-tabs-container">
-          <button class="export-tab active" data-export-type="iframe">Option A: Rise Embed Code (Recommended)</button>
+          <button class="export-tab active" data-export-type="iframe">Option A: Iframe Snippet (srcdoc)</button>
           <button class="export-tab" data-export-type="code">Option B: HTML Block Fragment</button>
         </div>
 
         <div id="export-media-warning" class="instructions-alert export-media-warning" role="status" hidden></div>
-        
+
         <!-- Tab Content: Iframe Link -->
         <div class="export-pane active" id="pane-export-iframe">
-          <p class="modal-desc">Copy the complete iframe code below and paste it into a <strong>Code &gt; Add code</strong> block in Rise 360.</p>
-          
+          <p class="modal-desc">Copy the complete iframe code below and paste it into a <strong>Code &gt; Add code</strong> block in Rise 360. This nests a self-contained iframe inside that block — see the compatibility note above before relying on this in a live course.</p>
+
           <div class="code-export-box">
             <pre><code id="export-iframe-code">&lt;iframe src="https://rise-builder.cloud.app/preview/accordion-abc123xyz" width="100%" height="450px" style="border:none;"&gt;&lt;/iframe&gt;</code></pre>
             <button id="btn-copy-iframe" class="btn btn-secondary btn-small copy-btn">Copy Code</button>
           </div>
-          
+
           <div class="instructions-alert">
             <div class="alert-icon">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
             </div>
             <div class="alert-content">
-              <strong>How to use in Articulate Rise:</strong>
+              <strong>Suggested steps in Articulate Rise (not independently verified — see compatibility note above):</strong>
               <ol>
                 <li>Add a new block where the component should appear and open the <strong>Block library</strong>.</li>
                 <li>Select <strong>&lt;/&gt; Code</strong>.</li>
                 <li>Choose <strong>Add code</strong>, then paste the complete iframe code copied above into the code editor.</li>
                 <li>Save the code block, then preview the lesson and adjust its height if needed.</li>
+                <li>Confirm the block actually renders and responds to clicks/keyboard in Rise's own preview before publishing — do not assume success from these steps alone.</li>
               </ol>
             </div>
           </div>
@@ -537,7 +540,7 @@
 
         <!-- Tab Content: HTML Code Block -->
         <div class="export-pane" id="pane-export-code">
-          <p class="modal-desc">Copy this fragment only for Rise/custom HTML areas that allow scripts. For the most reliable Rise behavior, use Option A. The download button still saves a complete standalone HTML file.</p>
+          <p class="modal-desc">Copy this fragment for a host that accepts raw HTML, CSS, and inline scripts directly (e.g. Rise's <strong>Code &gt; Add code</strong> block). The download button below still saves a complete standalone HTML file that this project has verified opens and works correctly in a plain browser.</p>
           
           <div class="code-export-box">
             <pre><code id="export-html-code">&lt;style&gt;
@@ -565,6 +568,7 @@
               <span>Prepare ZIP Asset Manifest</span>
             </button>
           </div>
+          <p class="field-hint">Lists assets that must travel separately from the HTML file. Does not produce a downloadable ZIP or SCORM archive — that packaging step is not implemented yet.</p>
           <details class="export-manifest-details">
             <summary>Export asset manifest</summary>
             <div class="code-export-box"><pre><code id="export-asset-manifest">[]</code></pre></div>

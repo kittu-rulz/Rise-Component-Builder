@@ -17,6 +17,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "build": "node build.mjs",
+    "fixtures:exports": "node scripts/generate-export-fixtures.mjs",
     "validate": "npm run lint && npm run typecheck && npm run test:coverage && npm run build"
   },
   "devDependencies": {

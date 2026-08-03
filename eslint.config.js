@@ -24,7 +24,7 @@ export default [
     }
   },
   {
-    files: ['build.mjs', 'vitest.config.js', 'playwright.config.js', 'eslint.config.js', 'tests/e2e/server.mjs'],
+    files: ['build.mjs', 'vitest.config.js', 'playwright.config.js', 'eslint.config.js', 'tests/e2e/server.mjs', 'scripts/**/*.mjs'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
@@ -32,7 +32,7 @@ export default [
     }
   },
   {
-    files: ['tests/unit/**/*.js', 'tests/*.test.mjs', 'tests/fixtures/**/*.js', 'tests/setup/**/*.js'],
+    files: ['tests/unit/**/*.js', 'tests/*.test.mjs', 'tests/fixtures/**/*.js', 'tests/fixtures/**/*.mjs', 'tests/setup/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
