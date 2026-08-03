@@ -26,25 +26,25 @@
         </div>
         <div class="logo-text">
           <h1>Rise Component Builder</h1>
-          <span class="version-tag">2026-08-01 · Beta v1.0</span>
+          <span class="version-tag">2026-08-03 · Beta v2.0</span>
         </div>
       </div>
       
       <div class="toolbar-actions">
-        <button id="btn-new" class="btn btn-secondary">
+        <button id="btn-new" class="btn btn-secondary" title="New Project" aria-label="New Project">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>New Project</span>
         </button>
-        <button id="btn-open" class="btn btn-secondary">
+        <button id="btn-open" class="btn btn-secondary" title="Open Project" aria-label="Open Project">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           <span>Open Project</span>
         </button>
-        <button id="btn-save" class="btn btn-secondary">
+        <button id="btn-save" class="btn btn-secondary" title="Save Project" aria-label="Save Project">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
           <span>Save</span>
         </button>
         <div class="divider"></div>
-        <button id="btn-export" class="btn btn-primary">
+        <button id="btn-export" class="btn btn-primary" title="Export Block" aria-label="Export Block">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.88 18.09A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.29"></path></svg>
           <span>Export Block</span>
         </button>
@@ -60,7 +60,7 @@
           <!-- Dark Mode Icon -->
           <svg class="theme-icon-dark" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
         </button>
-        <button id="btn-settings" class="utility-btn" title="Settings">
+        <button id="btn-settings" class="utility-btn" title="Settings" aria-label="Open settings">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
         <div class="user-profile">
@@ -149,7 +149,7 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
             </span>
             <span class="nav-label">AI Components</span>
-            <span class="badge badge-accent">Beta</span>
+            <span class="badge badge-accent">Experimental</span>
           </a>
 
           <a href="#" class="nav-item" data-category="favorites">
@@ -200,7 +200,7 @@
               <h2 id="active-component-title">Accordion</h2>
               <span id="active-component-category" class="category-pill">Interactive</span>
             </div>
-            <button id="btn-favorite-toggle" class="favorite-btn" title="Add to Favorites">
+            <button id="btn-favorite-toggle" class="favorite-btn" title="Add to Favorites" aria-label="Add to Favorites" aria-pressed="false">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             </button>
           </div>
@@ -317,6 +317,7 @@
                   <div class="input-wrapper">
                     <label for="input-border-radius">Border Roundness (<span id="radius-val">12px</span>) <span id="override-borderRadius-status" class="theme-source-badge">Theme value</span></label>
                     <input type="range" id="input-border-radius" min="0" max="32" value="12" step="2">
+                    <p class="field-hint">Applies to card corners, buttons, and media frames.</p>
                   </div>
 
                   <div class="input-wrapper">
@@ -327,6 +328,7 @@
                       <option value="medium">Medium (Elevation)</option>
                       <option value="premium">Premium Glassmorphism</option>
                     </select>
+                    <p class="field-hint">Adds depth without changing the component's layout.</p>
                   </div>
 
                   <div class="checkbox-wrapper">
@@ -360,16 +362,18 @@
                       <option value="chevron" selected>Chevron Up / Down (∨)</option>
                       <option value="arrow">Arrow Right / Down (→)</option>
                     </select>
+                    <p class="field-hint">Controls the icon shown on each accordion header.</p>
                   </div>
                 </div>
 
                 <div class="form-group-card">
                   <div class="group-title">eLearning Tracking (Rise Integration)</div>
-                  
+
                   <div class="checkbox-wrapper">
                     <input type="checkbox" id="input-track-completion">
                     <label for="input-track-completion">Require user to view all items to complete block</label>
                   </div>
+                  <p class="field-hint field-hint-inset">Marks this block complete in Rise once every item has been opened.</p>
 
                   <div class="input-wrapper">
                     <label for="input-completion-msg">Completion Success Message</label>
@@ -409,10 +413,10 @@
           </div>
 
           <div class="preview-actions">
-            <button id="btn-preview-refresh" class="icon-action-btn" title="Refresh Live Preview">
+            <button id="btn-preview-refresh" class="icon-action-btn" title="Refresh Live Preview" aria-label="Refresh live preview">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
             </button>
-            <button id="btn-preview-popout" class="icon-action-btn" title="Open Preview in New Tab">
+            <button id="btn-preview-popout" class="icon-action-btn" title="Open Preview in New Tab" aria-label="Open preview in new tab">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
             </button>
           </div>
@@ -453,7 +457,7 @@
     <div class="modal-card modal-large" role="dialog" aria-modal="true" aria-labelledby="modal-open-title" tabindex="-1">
       <div class="modal-header">
         <h3 id="modal-open-title">Open Component</h3>
-        <button class="modal-close-btn">&times;</button>
+        <button class="modal-close-btn" aria-label="Close Open Component dialog">&times;</button>
       </div>
       <div class="modal-body">
         <p class="modal-desc">Select a saved component project from your local workspace storage.</p>
@@ -473,7 +477,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="save-modal-title" tabindex="-1">
       <div class="modal-header">
         <h3 id="save-modal-title">Save Project</h3>
-        <button class="modal-close-btn">&times;</button>
+        <button class="modal-close-btn" aria-label="Close Save Project dialog">&times;</button>
       </div>
       <div class="modal-body">
         <p class="modal-desc">Save this component project and its current customization settings locally.</p>
@@ -496,7 +500,7 @@
     <div class="modal-card modal-large" role="dialog" aria-modal="true" aria-labelledby="modal-export-title" tabindex="-1">
       <div class="modal-header">
         <h3 id="modal-export-title">Export Custom Block</h3>
-        <button class="modal-close-btn">&times;</button>
+        <button class="modal-close-btn" aria-label="Close Export Custom Block dialog">&times;</button>
       </div>
       <div class="modal-body">
         <div class="export-tabs-container">
@@ -614,7 +618,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-settings-title" tabindex="-1">
       <div class="modal-header">
         <h3 id="modal-settings-title">Builder Settings</h3>
-        <button class="modal-close-btn">&times;</button>
+        <button class="modal-close-btn" aria-label="Close Builder Settings dialog">&times;</button>
       </div>
       <div class="modal-body">
         <p class="modal-desc">Configure editor settings and default preferences.</p>
@@ -679,7 +683,7 @@
     <div class="modal-card" role="alertdialog" aria-modal="true" aria-labelledby="modal-confirm-title" aria-describedby="modal-confirm-message" tabindex="-1">
       <div class="modal-header">
         <h3 id="modal-confirm-title">Confirm</h3>
-        <button class="modal-close-btn">&times;</button>
+        <button class="modal-close-btn" aria-label="Close dialog">&times;</button>
       </div>
       <div class="modal-body">
         <p class="modal-desc" id="modal-confirm-message"></p>
@@ -696,7 +700,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-prompt-title" tabindex="-1">
       <div class="modal-header">
         <h3 id="modal-prompt-title">Rename</h3>
-        <button class="modal-close-btn">&times;</button>
+        <button class="modal-close-btn" aria-label="Close Rename dialog">&times;</button>
       </div>
       <div class="modal-body">
         <p class="modal-desc" id="modal-prompt-message" hidden></p>

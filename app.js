@@ -467,11 +467,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const filtered = filterCatalog(componentCatalog, appState);
 
     if (filtered.length === 0) {
-      componentsGrid.innerHTML = `
-        <div class="empty-state-card" style="grid-column: 1/-1; text-align: center; padding: 48px; background-color: var(--bg-panel); border-radius: 12px; border: 1px dashed var(--border-color);">
-          <div style="font-size: 32px; margin-bottom: 12px;">🔍</div>
-          <h4 style="font-weight: 600; font-size: 15px; margin-bottom: 6px;">No Components Found</h4>
-          <p style="font-size: 13px; color: var(--text-muted);">Try a different query or select another category from the sidebar.</p>
+      const isFavoritesEmpty = appState.activeCategory === 'favorites' && !appState.searchQuery;
+      componentsGrid.innerHTML = isFavoritesEmpty
+        ? `
+        <div class="catalog-empty-state">
+          <div class="catalog-empty-icon" aria-hidden="true">★</div>
+          <h4>No Favorites Yet</h4>
+          <p>Click the star on any component to add it here for quick access.</p>
+        </div>
+      `
+        : `
+        <div class="catalog-empty-state">
+          <div class="catalog-empty-icon" aria-hidden="true">🔍</div>
+          <h4>No Components Found</h4>
+          <p>Try a different query or select another category from the sidebar.</p>
         </div>
       `;
       return;
@@ -506,12 +515,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     appState.config.blockHeadline = inputBlockHeadline.value;
     
     // Set Favorites icon look
-    if (appState.favorites.has(component.id)) {
-      btnFavoriteToggle.classList.add('favorited');
-    } else {
-      btnFavoriteToggle.classList.remove('favorited');
-    }
-    
+    setFavoriteButtonState(appState.favorites.has(component.id));
+
     // Setup component-specific default fields
     setupComponentFields(component.id);
     (component.editorSchema?.componentFields || []).forEach(field => {
@@ -556,18 +561,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Favorite toggle
+  function setFavoriteButtonState(isFavorited) {
+    btnFavoriteToggle.classList.toggle('favorited', isFavorited);
+    const label = isFavorited ? 'Remove from Favorites' : 'Add to Favorites';
+    btnFavoriteToggle.title = label;
+    btnFavoriteToggle.setAttribute('aria-label', label);
+    btnFavoriteToggle.setAttribute('aria-pressed', String(isFavorited));
+  }
+
   btnFavoriteToggle.addEventListener('click', () => {
     if (!appState.selectedComponent) return;
-    
+
     const id = appState.selectedComponent.id;
     if (appState.favorites.has(id)) {
       appState.favorites.delete(id);
-      btnFavoriteToggle.classList.remove('favorited');
     } else {
       appState.favorites.add(id);
-      btnFavoriteToggle.classList.add('favorited');
     }
-    
+    setFavoriteButtonState(appState.favorites.has(id));
+
     updateFavoritesBadge();
     try { saveFavorites(appState.favorites); }
     catch (error) { showToast(error.message, 'error'); }
@@ -1097,6 +1109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const name = document.createElement('div');
       name.className = 'sc-name';
       name.textContent = project.name;
+      name.title = project.name;
       const meta = document.createElement('div');
       meta.className = 'sc-meta';
       const component = componentCatalog.find(item => item.id === project.componentId);
@@ -1346,12 +1359,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function setupExportModalContent() {
     const warningBox = document.getElementById('export-media-warning');
     const manifestCode = document.getElementById('export-asset-manifest');
-    if (warningBox) { warningBox.hidden = false; warningBox.textContent = 'Preparing media export…'; }
+    if (warningBox) { warningBox.hidden = false; warningBox.classList.add('is-loading'); warningBox.textContent = 'Preparing media export…'; }
     try {
       currentExportBundle = await prepareCurrentExport();
     } catch (error) {
       currentExportBundle = null;
-      if (warningBox) warningBox.textContent = `Export preparation failed: ${error.message}`;
+      if (warningBox) { warningBox.classList.remove('is-loading'); warningBox.textContent = `Export preparation failed: ${error.message}`; }
       showToast(`Export preparation failed: ${error.message}`, 'error', 6000);
       return;
     }
@@ -1365,6 +1378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const htmlCode = document.getElementById('export-html-code');
     htmlCode.textContent = payload.fragment;
     if (warningBox) {
+      warningBox.classList.remove('is-loading');
       warningBox.hidden = payload.warnings.length === 0;
       warningBox.textContent = payload.warnings.join(' ');
     }
