@@ -1047,73 +1047,46 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color-scheme: dark;
 }
 
-/* Enhanced spinner UX - larger, more visible, custom styling */
+/* Enhanced spinner UX - ensure native spinners are visible and styled */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
+  -webkit-appearance: inner-spin-button;
   margin: 0;
   opacity: 1;
-  width: 20px;
-  height: 100%;
-  background-color: transparent;
   cursor: pointer;
-  position: relative;
+  height: 100%;
 }
 
-input[type="number"]:focus::-webkit-inner-spin-button,
-input[type="number"]:focus::-webkit-outer-spin-button {
-  background-color: var(--primary-light);
+/* Make spinners larger and more clickable */
+input[type="number"]::-webkit-inner-spin-button {
+  width: 18px;
+  margin-right: 2px;
 }
 
-/* Custom up/down arrows using pseudo-elements for better visibility */
-input[type="number"]::-webkit-inner-spin-button::before,
-input[type="number"]::-webkit-outer-spin-button::before {
-  content: '';
-  display: block;
-  width: 14px;
-  height: 14px;
-  margin: 2px auto;
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+/* Light mode - ensure good contrast */
+input[type="number"]::-webkit-inner-spin-button {
+  filter: brightness(0.8);
 }
 
-/* Up arrow */
-input[type="number"]::-webkit-inner-spin-button::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E");
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-inner-spin-button {
+  filter: brightness(1) saturate(1.2);
 }
 
-/* Down arrow */
-input[type="number"]::-webkit-outer-spin-button::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
+/* Dark mode - lighter spinners for better visibility */
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button {
+  filter: brightness(1.2) invert(0.9);
 }
 
-/* Hover state - brighter arrows */
-input[type="number"]:hover::-webkit-inner-spin-button::before,
-input[type="number"]:hover::-webkit-outer-spin-button::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563EB'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E"),
-                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563EB'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
+[data-theme="dark"] input[type="number"]:hover::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]:focus::-webkit-inner-spin-button {
+  filter: brightness(1.4) invert(1);
 }
 
-/* Dark mode - light colored arrows */
-[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394A3B8'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E");
-}
-
-[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394A3B8'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
-}
-
-[data-theme="dark"] input[type="number"]:hover::-webkit-inner-spin-button::before,
-[data-theme="dark"] input[type="number"]:hover::-webkit-outer-spin-button::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2360A5FA'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E"),
-                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2360A5FA'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
-}
-
-/* Firefox - ensure visibility */
+/* Firefox - ensure spinners are always visible */
 input[type="number"] {
-  -moz-appearance: textfield;
+  -moz-appearance: number-input;
+  appearance: textfield;
 }
 
 input[type="number"]:hover,
