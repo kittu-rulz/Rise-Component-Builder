@@ -1047,20 +1047,78 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color-scheme: dark;
 }
 
-[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button,
-[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button {
-  filter: brightness(0) invert(1);
-  opacity: 0.7;
-}
-
+/* Enhanced spinner UX - larger, more visible, custom styling */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  opacity: 0.6;
+  -webkit-appearance: none;
+  margin: 0;
+  opacity: 1;
+  width: 20px;
+  height: 100%;
+  background-color: transparent;
+  cursor: pointer;
+  position: relative;
 }
 
-input[type="number"]:hover::-webkit-inner-spin-button,
-input[type="number"]:hover::-webkit-outer-spin-button {
-  opacity: 1;
+input[type="number"]:focus::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-outer-spin-button {
+  background-color: var(--primary-light);
+}
+
+/* Custom up/down arrows using pseudo-elements for better visibility */
+input[type="number"]::-webkit-inner-spin-button::before,
+input[type="number"]::-webkit-outer-spin-button::before {
+  content: '';
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 2px auto;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+}
+
+/* Up arrow */
+input[type="number"]::-webkit-inner-spin-button::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E");
+}
+
+/* Down arrow */
+input[type="number"]::-webkit-outer-spin-button::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
+}
+
+/* Hover state - brighter arrows */
+input[type="number"]:hover::-webkit-inner-spin-button::before,
+input[type="number"]:hover::-webkit-outer-spin-button::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563EB'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E"),
+                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563EB'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
+}
+
+/* Dark mode - light colored arrows */
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394A3B8'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2394A3B8'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] input[type="number"]:hover::-webkit-inner-spin-button::before,
+[data-theme="dark"] input[type="number"]:hover::-webkit-outer-spin-button::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2360A5FA'%3E%3Cpath d='M12 4l-8 8h16z'/%3E%3C/svg%3E"),
+                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2360A5FA'%3E%3Cpath d='M12 20l8-8H4z'/%3E%3C/svg%3E");
+}
+
+/* Firefox - ensure visibility */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]:hover,
+input[type="number"]:focus {
+  -moz-appearance: number-input;
 }
 
 .schema-field input[type="color"] {
