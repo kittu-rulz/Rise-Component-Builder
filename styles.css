@@ -1047,51 +1047,82 @@ input[type="range"]::-webkit-slider-thumb:hover {
   color-scheme: dark;
 }
 
-/* Enhanced spinner UX - ensure native spinners are visible and styled */
+/* Enhanced spinner UX - Custom SVG arrows for better visibility and control */
+input[type="number"] {
+  -moz-appearance: textfield; /* Hide Firefox default */
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) - Custom spinner with SVG arrows */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: inner-spin-button;
+  -webkit-appearance: none;
+  appearance: none;
   margin: 0;
-  opacity: 1;
-  cursor: pointer;
+  width: 20px;
   height: 100%;
+  cursor: pointer;
+  opacity: 1;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 12px 12px;
+  transition: all 0.15s ease;
 }
 
-/* Make spinners larger and more clickable */
+/* Up arrow (inner spin button) */
 input[type="number"]::-webkit-inner-spin-button {
-  width: 18px;
-  margin-right: 2px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E");
+  border-left: 1px solid rgba(0,0,0,0.1);
 }
 
-/* Light mode - ensure good contrast */
-input[type="number"]::-webkit-inner-spin-button {
-  filter: brightness(0.8);
+/* Down arrow (outer spin button) - rotated 180 degrees */
+input[type="number"]::-webkit-outer-spin-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E");
+  transform: rotate(180deg);
+  border-left: 1px solid rgba(0,0,0,0.1);
 }
 
-input[type="number"]:hover::-webkit-inner-spin-button,
-input[type="number"]:focus::-webkit-inner-spin-button {
-  filter: brightness(1) saturate(1.2);
+/* Light mode hover state */
+[data-theme="light"] input[type="number"]:hover::-webkit-inner-spin-button,
+[data-theme="light"] input[type="number"]:hover::-webkit-outer-spin-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E");
+  background-color: rgba(37,99,235,0.08);
 }
 
-/* Dark mode - lighter spinners for better visibility */
-[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button {
-  filter: brightness(1.2) invert(0.9);
+/* Light mode active state */
+[data-theme="light"] input[type="number"]:active::-webkit-inner-spin-button,
+[data-theme="light"] input[type="number"]:active::-webkit-outer-spin-button {
+  transform: scale(0.9);
 }
 
+/* Dark mode spinners - lighter color for visibility */
+[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]::-webkit-outer-spin-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E");
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Dark mode hover state */
 [data-theme="dark"] input[type="number"]:hover::-webkit-inner-spin-button,
-[data-theme="dark"] input[type="number"]:focus::-webkit-inner-spin-button {
-  filter: brightness(1.4) invert(1);
+[data-theme="dark"] input[type="number"]:hover::-webkit-outer-spin-button {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2360A5FA' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5M5 12l7-7 7 7'/%3E%3C/svg%3E");
+  background-color: rgba(96,165,250,0.12);
 }
 
-/* Firefox - ensure spinners are always visible */
-input[type="number"] {
-  -moz-appearance: number-input;
-  appearance: textfield;
+/* Dark mode active state */
+[data-theme="dark"] input[type="number"]:active::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]:active::-webkit-outer-spin-button {
+  transform: scale(0.9);
 }
 
-input[type="number"]:hover,
-input[type="number"]:focus {
-  -moz-appearance: number-input;
+/* Focus state - highlight both buttons */
+input[type="number"]:focus::-webkit-inner-spin-button,
+input[type="number"]:focus::-webkit-outer-spin-button {
+  background-color: rgba(37,99,235,0.1);
+}
+
+[data-theme="dark"] input[type="number"]:focus::-webkit-inner-spin-button,
+[data-theme="dark"] input[type="number"]:focus::-webkit-outer-spin-button {
+  background-color: rgba(96,165,250,0.15);
 }
 
 .schema-field input[type="color"] {
