@@ -1,9 +1,18 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { serializeForInlineScript } from '../js/utilities.js';
+import { validateFillBlankAnswers, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Fill-in-the-Blank Component Configuration
+ * @typedef {Object} FillBlankConfig
+ * @property {Array<{title: string, content: string}>} items - Array of sentences with blanks and answers
+ */
 
 export const id = 'fill-blank';
 export const name = 'Fill-in-the-Blank';
 export const category = 'knowledge';
+
+/** @type {FillBlankConfig} */
 export const defaultConfig = {
   items: [
     { title: 'Articulate Rise uses [blank] to display custom interactive content.', content: 'iframes' },
@@ -167,7 +176,27 @@ export function generateJS(config, instanceId) {
     }`;
 }
 
+/**
+ * Validates fill-in-the-blank component configuration.
+ * @param {FillBlankConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = Array.isArray(config.items) && config.items.length ? [] : ['Add at least one fill-in-the-blank sentence.'];
-  return { valid: errors.length === 0, errors };
+  const results = [
+    validateFillBlankAnswers(config.items)
+  ];
+  
+  // Validate each item has required fields
+  if (Array.isArray(config.items)) {
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Question ${index + 1}: Sentence with [blank] is required.` });
+      }
+      if (!item.title.includes('[blank]')) {
+        results.push({ valid: false, error: `Question ${index + 1}: Sentence must contain [blank] placeholder.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }

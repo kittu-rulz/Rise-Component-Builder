@@ -1,9 +1,18 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeAttribute, escapeHTML, sanitizeRichText } from '../js/utilities.js';
+import { validateTimelineEvents, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Vertical Timeline Component Configuration
+ * @typedef {Object} VerticalTimelineConfig
+ * @property {Array<{title: string, content: string}>} items - Array of timeline steps
+ */
 
 export const id = 'vertical-timeline';
 export const name = 'Vertical Step Timeline';
 export const category = 'timelines';
+
+/** @type {VerticalTimelineConfig} */
 export const defaultConfig = {
   items: [
     { title: 'Phase 1: Research', content: 'Collect data assets, requirements, and verify targets.' },
@@ -119,7 +128,27 @@ export function generateJS() {
     }`;
 }
 
+/**
+ * Validates vertical timeline component configuration.
+ * @param {VerticalTimelineConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = Array.isArray(config.items) && config.items.length ? [] : ['Add at least one timeline step.'];
-  return { valid: errors.length === 0, errors };
+  const results = [
+    validateTimelineEvents(config.items)
+  ];
+  
+  // Validate each item has required fields
+  if (Array.isArray(config.items)) {
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Step ${index + 1}: Title is required.` });
+      }
+      if (!item.content || !String(item.content).trim()) {
+        results.push({ valid: false, error: `Step ${index + 1}: Description is required.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }
