@@ -78,7 +78,7 @@
         <div class="search-container">
           <div class="search-box">
             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="search-components" placeholder="Search components..." autocomplete="off">
+            <input type="text" id="search-components" placeholder="Search components..." autocomplete="off" aria-label="Search components">
           </div>
         </div>
 
@@ -175,7 +175,7 @@
       </aside>
 
       <!-- Center Configuration Panel -->
-      <section class="config-panel">
+      <section class="config-panel" aria-label="Component editor">
         
         <!-- Welcome / Catalog Screen (Default state) -->
         <div id="catalog-state" class="panel-state">
@@ -200,6 +200,9 @@
               <h2 id="active-component-title">Accordion</h2>
               <span id="active-component-category" class="category-pill">Interactive</span>
             </div>
+            <button id="btn-preflight" class="btn btn-secondary btn-small preflight-trigger" type="button" title="Open preflight check results" aria-label="Open preflight check results">
+              <span id="preflight-badge" class="preflight-badge" data-state="none">Preflight</span>
+            </button>
             <button id="btn-favorite-toggle" class="favorite-btn" title="Add to Favorites" aria-label="Add to Favorites" aria-pressed="false">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
             </button>
@@ -220,7 +223,7 @@
               <div class="tab-pane active" id="tab-content">
                 <!-- Group: General Details -->
                 <div class="form-group-card">
-                  <div class="group-title">Header Details</div>
+                  <h3 class="group-title">Header Details</h3>
                   
                   <div class="input-wrapper">
                     <label for="input-block-title">Block Label / Category</label>
@@ -236,12 +239,25 @@
                     <label for="input-block-desc">Instructional Subtext</label>
                     <textarea id="input-block-desc" placeholder="Brief instructions for the learner...">Click on the headers below to discover detailed insights.</textarea>
                   </div>
+
+                  <div class="input-wrapper">
+                    <label for="select-heading-level">Headline Heading Level</label>
+                    <select id="select-heading-level">
+                      <option value="h1">Heading 1 (h1)</option>
+                      <option value="h2" selected>Heading 2 (h2)</option>
+                      <option value="h3">Heading 3 (h3)</option>
+                      <option value="h4">Heading 4 (h4)</option>
+                      <option value="h5">Heading 5 (h5)</option>
+                      <option value="h6">Heading 6 (h6)</option>
+                    </select>
+                    <p class="field-hint">Sets the HTML tag used for the Main Headline above. Choose a level that fits where this block sits in the host page's own heading outline — Rise lesson pages already have their own h1, so h2 is a safe default.</p>
+                  </div>
                 </div>
 
                 <!-- Group: Dynamic Items (Accordion items, tabs, quiz questions, etc.) -->
                 <div class="form-group-card">
                   <div class="group-header-with-action">
-                    <div class="group-title">Interactive Items</div>
+                    <h3 class="group-title">Interactive Items</h3>
                     <button type="button" id="btn-add-item" class="btn btn-text btn-small">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                       Add Item
@@ -261,7 +277,7 @@
                   <button type="button" id="btn-open-theme-manager-style" class="btn btn-text btn-small">Manage Themes</button>
                 </div>
                 <div class="form-group-card">
-                  <div class="group-title">Visual Branding</div>
+                  <h3 class="group-title">Visual Branding</h3>
                   
                   <div class="grid-2-col">
                     <div class="input-wrapper">
@@ -301,7 +317,7 @@
                 </div>
 
                 <div class="form-group-card">
-                  <div class="group-title">Layout & Borders</div>
+                  <h3 class="group-title">Layout & Borders</h3>
 
                   <div class="input-wrapper">
                     <label for="select-component-font">Component Font <span id="override-fontFamily-status" class="theme-source-badge">Theme value</span></label>
@@ -343,7 +359,7 @@
               <!-- Tab Content: Behavior Settings -->
               <div class="tab-pane" id="tab-settings">
                 <div class="form-group-card" id="accordion-behavior-group">
-                  <div class="group-title">Interaction Behaviors</div>
+                  <h3 class="group-title">Interaction Behaviors</h3>
                   
                   <div class="checkbox-wrapper">
                     <input type="checkbox" id="input-behavior-accordion-multi" checked>
@@ -367,13 +383,13 @@
                 </div>
 
                 <div class="form-group-card">
-                  <div class="group-title">eLearning Completion Tracking</div>
+                  <h3 class="group-title">Completion Tracking</h3>
 
                   <div class="checkbox-wrapper">
                     <input type="checkbox" id="input-track-completion">
-                    <label for="input-track-completion">Require user to view all items to complete block</label>
+                    <label for="input-track-completion">Required: learner must view every item to complete this block</label>
                   </div>
-                  <p class="field-hint field-hint-inset">Shows an in-block progress bar and sends a completion signal to the host page. Whether the host (e.g. Rise) actually listens for that signal and marks its own lesson complete is not guaranteed by this project — see docs/RISE-COMPATIBILITY-MATRIX.md.</p>
+                  <p class="field-hint field-hint-inset">Leave unchecked for optional/no completion tracking — no progress bar is shown and nothing is ever sent anywhere. Checked, this always tracks progress internally and shows a progress bar. If this block is embedded in a host page, it <em>additionally</em> sends a one-time completion message to that host — see docs/COMPLETION-INTEGRATION.md for the exact message and what "embedded" means. Whether Rise, Moodle, or any other host actually listens for that message and marks its own lesson/course complete is not verified by this project — see docs/RISE-COMPATIBILITY-MATRIX.md.</p>
 
                   <div class="input-wrapper">
                     <label for="input-completion-msg">Completion Success Message</label>
@@ -389,7 +405,7 @@
       </section>
 
       <!-- Right Live Preview Panel -->
-      <section class="preview-panel">
+      <section class="preview-panel" aria-label="Live preview">
         <div class="preview-toolbar">
           <div class="preview-title-group">
             <div class="preview-title">Live Interactive Preview</div>
@@ -441,7 +457,7 @@
               </div>
               
               <!-- Component Output Frame (Simulated inside an iframe to represent isolated CSS) -->
-              <iframe id="live-preview-iframe" title="Component Live Preview" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>
+              <iframe id="live-preview-iframe" title="Component Live Preview" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms"></iframe>
             </div>
           </div>
         </div>
@@ -460,13 +476,13 @@
         <button class="modal-close-btn" aria-label="Close Open Component dialog">&times;</button>
       </div>
       <div class="modal-body">
-        <p class="modal-desc">Select a saved component project from your local workspace storage.</p>
-        
+        <p class="modal-desc">Select a saved component project from your local workspace storage, or import a project file — a plain <strong>.rise.json</strong> (metadata only; any uploaded media must already exist in this browser) or a portable <strong>project package (.zip)</strong>, which carries its uploaded media along with it.</p>
+
         <div id="saved-components-list" class="saved-components-list"></div>
       </div>
       <div class="modal-footer">
-        <input id="import-project-file" type="file" accept="application/json,.json" hidden>
-        <button id="btn-import-project" class="btn btn-secondary">Import JSON</button>
+        <input id="import-project-file" type="file" accept="application/json,.json,application/zip,.zip" hidden>
+        <button id="btn-import-project" class="btn btn-secondary">Import Project File</button>
         <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
       </div>
     </div>
@@ -503,11 +519,13 @@
         <button class="modal-close-btn" aria-label="Close Export Custom Block dialog">&times;</button>
       </div>
       <div class="modal-body">
+        <div id="export-preflight-results" role="status" aria-live="polite"></div>
         <div id="export-compatibility-report" class="compat-report" role="status" aria-live="polite"></div>
 
         <div class="export-tabs-container">
           <button class="export-tab active" data-export-type="iframe">Option A: Iframe Snippet (srcdoc)</button>
           <button class="export-tab" data-export-type="code">Option B: HTML Block Fragment</button>
+          <button class="export-tab" data-export-type="rise-zip" id="export-tab-rise-zip">Option C: Rise Project ZIP<span id="rise-zip-recommended-badge" class="badge badge-accent" hidden>Recommended</span></button>
         </div>
 
         <div id="export-media-warning" class="instructions-alert export-media-warning" role="status" hidden></div>
@@ -540,8 +558,8 @@
 
         <!-- Tab Content: HTML Code Block -->
         <div class="export-pane" id="pane-export-code">
-          <p class="modal-desc">Copy this fragment for a host that accepts raw HTML, CSS, and inline scripts directly (e.g. Rise's <strong>Code &gt; Add code</strong> block). The download button below still saves a complete standalone HTML file that this project has verified opens and works correctly in a plain browser.</p>
-          
+          <p class="modal-desc">Copy this fragment for a host that accepts raw HTML, CSS, and inline scripts directly (e.g. Rise's <strong>Code &gt; Add code</strong> block). The download button below still saves a complete standalone HTML file that this project has verified opens and works correctly in a plain browser — <strong>only when every asset is small enough to embed directly</strong>; if this component uses uploaded audio, video, or a large image, use <strong>Option C: Rise Project ZIP</strong> instead.</p>
+
           <div class="code-export-box">
             <pre><code id="export-html-code">&lt;style&gt;
   /* Customized component styles */
@@ -556,22 +574,33 @@
 &lt;/script&gt;</code></pre>
             <button id="btn-copy-html" class="btn btn-secondary btn-small copy-btn">Copy Fragment</button>
           </div>
-          
+
           <p class="export-file-size-label" id="export-file-size"></p>
           <div class="action-buttons-row">
             <button id="btn-download-html" class="btn btn-secondary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               <span>Download .HTML File</span>
             </button>
-            <button id="btn-download-zip" class="btn btn-primary">
+          </div>
+        </div>
+
+        <!-- Tab Content: Rise Project ZIP -->
+        <div class="export-pane" id="pane-export-rise-zip">
+          <p class="modal-desc">Packages this component as a real, standalone ZIP: <code>index.html</code> at the root, plus every uploaded image or audio file it actually uses under <code>assets/</code>. Unlike the single-HTML option, uploaded audio, video, and large images travel as real files instead of being blocked or embedded as (potentially very large) inline data. Extract the ZIP and host <code>index.html</code> plus its <code>assets/</code> folder wherever your course's other external content lives, or open <code>index.html</code> directly to verify it first — see the compatibility note above for what is and isn't confirmed about using this inside Rise itself.</p>
+
+          <div id="rise-zip-warning" class="instructions-alert export-media-warning" role="status" hidden></div>
+          <div id="rise-zip-blocking" class="field-error" role="alert" hidden></div>
+
+          <p class="export-file-size-label" id="rise-zip-file-size"></p>
+          <div class="action-buttons-row">
+            <button id="btn-download-rise-zip" class="btn btn-primary">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span>Prepare ZIP Asset Manifest</span>
+              <span>Download Rise Project ZIP</span>
             </button>
           </div>
-          <p class="field-hint">Lists assets that must travel separately from the HTML file. Does not produce a downloadable ZIP or SCORM archive — that packaging step is not implemented yet.</p>
           <details class="export-manifest-details">
-            <summary>Export asset manifest</summary>
-            <div class="code-export-box"><pre><code id="export-asset-manifest">[]</code></pre></div>
+            <summary>Asset manifest (also included in the ZIP as assets/manifest.json)</summary>
+            <div class="code-export-box"><pre><code id="rise-zip-manifest">[]</code></pre></div>
           </details>
         </div>
       </div>
@@ -606,7 +635,7 @@
         </div>
         <div id="theme-cards" class="theme-card-grid"></div>
         <section class="theme-contrast-section" aria-labelledby="theme-contrast-heading">
-          <div class="group-title" id="theme-contrast-heading">WCAG 2.2 AA Contrast Review</div>
+          <h3 class="group-title" id="theme-contrast-heading">WCAG 2.2 AA Contrast Review</h3>
           <p class="modal-desc">Warnings do not change your selected colors. Suggested alternatives are provided for review.</p>
           <div id="theme-contrast-report" class="theme-contrast-report"></div>
         </section>
@@ -647,7 +676,7 @@
           </select>
         </div>
 
-        <div class="group-title">Media Upload Limits (MB)</div>
+        <h3 class="group-title">Media Upload Limits (MB)</h3>
         <div class="input-wrapper">
           <label for="settings-limit-image">Image Max Size (MB)</label>
           <input type="number" id="settings-limit-image" min="1" max="50" step="1">
@@ -674,10 +703,34 @@
           <input type="checkbox" id="settings-enable-ai">
           <label for="settings-enable-ai">Enable AI Component Generator assistant</label>
         </div>
+
+        <h3 class="group-title">Completion Messaging (Advanced)</h3>
+        <div class="input-wrapper">
+          <label for="settings-completion-origin">Expected parent frame origin</label>
+          <input type="text" id="settings-completion-origin" placeholder="e.g. https://your-rise-course.example.com">
+          <p class="field-hint">Optional. When set, exported components only send/accept completion messages to/from this exact origin, instead of any origin. Leave blank unless you know the exact origin your course will be hosted on — see docs/COMPLETION-INTEGRATION.md.</p>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary modal-cancel-btn">Cancel</button>
         <button id="btn-save-settings" class="btn btn-primary">Apply Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Preflight Check -->
+  <div id="modal-preflight" class="modal-overlay" style="display: none;">
+    <div class="modal-card modal-large" role="dialog" aria-modal="true" aria-labelledby="modal-preflight-title" tabindex="-1">
+      <div class="modal-header">
+        <h3 id="modal-preflight-title">Preflight Check</h3>
+        <button class="modal-close-btn" aria-label="Close Preflight Check dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Blocking errors must be fixed before this component can be exported. Warnings and recommendations do not block export — see docs/VALIDATION-RULES.md.</p>
+        <div id="preflight-results"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary modal-cancel-btn">Close</button>
       </div>
     </div>
   </div>

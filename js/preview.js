@@ -2,6 +2,7 @@ import { escapeHTML, sanitizePreviewConfig, serializeForInlineScript } from './u
 import { resolveMediaReferencesForPreview } from './media-storage.js';
 import { applyThemeToConfig, getBuiltInTheme, resolveThemeTokens } from './themes.js';
 import { renderCompletionTrackerHTML, renderSharedA11yScript, renderShell } from './export-shell.js';
+import { renderCompletionAdapterScript } from './completion.js';
 
 // The single source of truth for how wide an authored Rise block ever actually renders
 // (also referenced by the builder's own Desktop preview mode, js/device-preview.js).
@@ -114,12 +115,25 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
       --component-max-width: ${COMPONENT_MAX_WIDTH}px;`;
 
   const trackableCount = getTrackableCount(compId, c.items.length);
-  const sharedA11yScript = renderSharedA11yScript({
+  const a11yScript = renderSharedA11yScript({
     instanceId,
     trackCompletion: c.trackCompletion,
     totalItems: trackableCount,
     completionMessage: serializeForInlineScript(c.completionMsg || 'Activity complete!')
   });
+  // The completion adapter (js/completion.js) is only shipped when completion tracking
+  // is actually on — an author who leaves it off gets no messaging code, no 'message'
+  // listener, and no notion of "completion" at all. See docs/COMPLETION-INTEGRATION.md
+  // "Required vs. optional completion".
+  const completionAdapterScript = c.trackCompletion
+    ? renderCompletionAdapterScript({
+        componentId: compId,
+        componentVersion: entry.version,
+        instanceId,
+        allowedOrigin: appState.settings?.completionParentOrigin || null
+      })
+    : '';
+  const sharedA11yScript = `${a11yScript}\n${completionAdapterScript}`;
 
   return renderShell({
     instanceId,
@@ -129,6 +143,7 @@ export function generateIframeContent(appState, componentRegistry, colorToRgba) 
     blockLabel: escapeHTML(c.blockTitle),
     blockHeadline: escapeHTML(c.blockHeadline),
     blockDesc: escapeHTML(c.blockDesc),
+    blockHeadingLevel: c.blockHeadingLevel,
     componentHTML: entry.generateHTML(c, instanceId),
     completionTrackerHTML: renderCompletionTrackerHTML(instanceId, c.trackCompletion),
     sharedA11yScript,

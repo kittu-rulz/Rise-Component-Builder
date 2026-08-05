@@ -6,7 +6,11 @@
   --primary: #2563EB;
   --primary-hover: #1D4ED8;
   --primary-light: #EFF6FF;
-  
+  /* Text-only usages of the brand color (never a filled background) — kept separate
+     from --primary because a shade dark enough for white button text to read against
+     is too dark, on this dark panel background, for its own text to read against. */
+  --primary-text: #2563EB;
+
   --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
@@ -21,7 +25,7 @@
   --border-hover: #D1D5DB;
   
   --text-main: #1F2937;
-  --text-muted: #6B7280;
+  --text-muted: #4B5563;
   --text-inverse: #FFFFFF;
   
   --input-bg: #FFFFFF;
@@ -49,7 +53,8 @@
   --bg-panel: #1E293B;
   --bg-sidebar: #0F172A;
   --bg-toolbar: #0F172A;
-  
+  --primary-text: #60A5FA;
+
   --border-color: #334155;
   --border-hover: #475569;
   
@@ -244,7 +249,7 @@ a {
 .btn-text {
   background: transparent;
   border: none;
-  color: var(--primary);
+  color: var(--primary-text);
   padding: 4px 8px;
 }
 
@@ -287,7 +292,7 @@ a {
   height: 32px;
   border-radius: 50%;
   background-color: #ECFDF5;
-  color: #059669;
+  color: #065F46;
   font-size: 12px;
   font-weight: 600;
   display: flex;
@@ -419,7 +424,10 @@ a {
 }
 
 .badge-accent {
-  background-color: var(--warning);
+  /* Darker than --warning on purpose: white text on the raw --warning amber only
+     reaches 2.14:1 contrast (fails WCAG AA 4.5:1) — this shade is chosen to pass
+     while staying in the same amber family used for "Experimental" labelling. */
+  background-color: #B45309;
   color: #FFFFFF !important;
 }
 
@@ -659,6 +667,7 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 24px;
   transition: color var(--transition-fast);
   padding: 0;
   margin-bottom: 4px;
@@ -681,7 +690,7 @@ a {
 .category-pill {
   font-size: 11px;
   font-weight: 500;
-  color: var(--primary);
+  color: var(--primary-text);
   background-color: var(--primary-light);
   padding: 2px 8px;
   border-radius: 6px;
@@ -715,6 +724,101 @@ a {
   color: #FFFFFF;
 }
 
+/* Preflight */
+.preflight-trigger { display: inline-flex; align-items: center; }
+
+.preflight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preflight-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  display: inline-block;
+}
+
+.preflight-badge[data-state="clean"]::before { background-color: var(--success); }
+.preflight-badge[data-state="warning"]::before { background-color: var(--warning); }
+.preflight-badge[data-state="blocking"]::before { background-color: var(--danger); }
+
+.preflight-section { margin-bottom: 20px; }
+.preflight-section:last-child { margin-bottom: 0; }
+
+.preflight-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preflight-section-title.is-blocking { color: var(--danger); }
+.preflight-section-title.is-warning { color: var(--warning-dark, #92400e); }
+.preflight-section-title.is-recommendation { color: var(--text-muted); }
+
+.preflight-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 16px;
+  text-align: center;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+}
+
+.preflight-issue-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+.preflight-issue {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+  font-size: 13px;
+}
+
+.preflight-issue-message { color: var(--text-main); }
+
+.preflight-issue-jump {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.preflight-issue-jump:hover { border-color: var(--primary); }
+
+.item-issue-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.item-issue-badge.is-blocking { background-color: rgba(239, 68, 68, 0.16); color: var(--danger); }
+.item-issue-badge.is-warning { background-color: rgba(245, 158, 11, 0.18); color: var(--warning-dark, #92400e); }
+
 .editor-scroll-container {
   flex: 1;
   overflow-y: auto;
@@ -746,7 +850,7 @@ a {
 }
 
 .editor-tab.active {
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .editor-tab.active::after {
@@ -965,7 +1069,10 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .item-collapse-btn {
   min-width: 0;
+  min-height: 24px;
   flex: 1;
+  display: inline-flex;
+  align-items: center;
   overflow: hidden;
   border: 0;
   background: transparent;
@@ -1408,7 +1515,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  color: #64748B;
+  color: #334155;
   background-color: #E2E8F0;
   padding: 2px 8px;
   border-radius: 4px;
@@ -1689,6 +1796,47 @@ input[type="range"]::-webkit-slider-thumb:hover {
   line-height: 1.45;
 }
 
+.media-source-badge {
+  align-self: flex-start;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-body);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.media-source-badge.is-external {
+  color: var(--primary-text, var(--primary));
+  border-color: var(--primary-light);
+  background-color: var(--primary-light);
+}
+
+.media-source-badge.is-missing {
+  color: #B45309;
+  border-color: #FDE68A;
+  background-color: #FFFBEB;
+}
+
+[data-theme="dark"] .media-source-badge.is-missing {
+  color: #FBBF24;
+  background-color: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.media-missing-notice {
+  display: block;
+  color: #B45309;
+  font-size: 11px;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+[data-theme="dark"] .media-missing-notice { color: #FBBF24; }
+
 .field-hint {
   margin: -2px 0 0;
   color: var(--text-muted);
@@ -1888,7 +2036,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 .export-tab.active {
-  color: var(--primary);
+  color: var(--primary-text);
 }
 
 .export-tab.active::after {
@@ -2073,5 +2221,53 @@ input[type="range"]::-webkit-slider-thumb:hover {
   .preview-panel {
     width: 100%;
     height: 50vh;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Below ~480px the toolbar's three groups (brand, project actions, utilities) no
+     longer fit on one row even with labels already hidden (see the 1024px rule above)
+     — wrap instead of letting content push the whole page into horizontal scroll
+     (WCAG 1.4.10 Reflow). */
+  .app-toolbar {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 12px;
+    row-gap: 8px;
+  }
+
+  .user-profile {
+    display: none;
+  }
+
+  .logo-text .version-tag {
+    display: none;
+  }
+}
+
+/* Accessibility: reduced motion and forced-colors support for the builder's own
+   chrome (the exported components carry an equivalent block via js/export-shell.js
+   #SHARED_A11Y_CSS — this one is scoped to the authoring UI itself). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  :where(button, [role="button"], [role="tab"], input, select, textarea, a.nav-item) {
+    border: 1px solid ButtonText;
+  }
+  :where(button, [role="button"], [role="tab"], input, select, textarea, a.nav-item):focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  .device-btn[aria-pressed="true"], .editor-tab.active, .export-tab.active {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
   }
 }

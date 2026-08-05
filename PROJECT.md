@@ -36,6 +36,11 @@ Rise Component Builder is a browser-based internal authoring tool for creating c
 - IndexedDB storage for uploaded images, audio, video, posters, and WebVTT captions
 - Media-aware standalone export validation and ZIP asset-manifest preparation
 - An in-app export compatibility report (Confirmed/Experimental/Fallback/Unsupported per export format), backed by `docs/RISE-COMPATIBILITY-MATRIX.md`, manual Rise/Moodle/SCORM test checklists, and a results log — see `docs/COMPATIBILITY-RESULTS.md`
+- A completion adapter system (standalone/parent-message/no-op) with a documented, versioned `postMessage` schema, configurable target-origin, duplicate-prevention, and inbound-message validation — see `docs/COMPLETION-INTEGRATION.md`. Rise/SCORM/LMS/xAPI completion consumption is explicitly unimplemented and unverified.
+- A schema-driven, component-specific export-preflight validation engine (Blocking/Warning/Recommendation severities) covering general content, knowledge-check, media, and hotspot rules, surfaced inline, via item-card badges, a consolidated Preflight panel, and an export gate that blocks only on genuine blocking failures — see `docs/VALIDATION-RULES.md`.
+- WCAG 2.2 AA accessibility coverage for both the builder UI and every exported component — automated axe/keyboard test coverage, an author-configurable embedded-heading level (avoids a forced second `<h1>` in a Rise lesson), builder-chrome contrast/reflow/target-size fixes, and an honest list of what remains manual-only — see `docs/ACCESSIBILITY-CONFORMANCE.md`.
+- A security-hardening pass covering prototype-pollution key rejection on imported project JSON, a minimized iframe sandbox (removed the previously-included `allow-same-origin`, verified unnecessary), a global unexpected-error handler that logs full detail to the console while showing only a generic toast to authors, and a clean dependency audit — see `docs/SECURITY.md`.
+- A productionized media pipeline: image-dimension limits with automatic downscale/compression, content-hash duplicate detection, always-visible local-vs-external and missing-asset indicators, a friendly IndexedDB storage-quota error, a real dependency-free ZIP writer/reader (`js/zip.js`) backing both a Rise Project ZIP export and a portable project package, and an explicit per-export-mode table of which assets are embedded, packaged, referenced, or unsupported — see `docs/MEDIA-ASSET-PIPELINE.md`.
 
 ## Supported component types
 
@@ -83,22 +88,24 @@ There is no application framework, production bundler, backend, or external data
 - Downloadable standalone HTML document
 - Versioned project JSON download and import
 - Versioned theme JSON download and import
-- ZIP and SCORM choices are visible in settings/UI, but package generation is not implemented
+- Rise Project ZIP: a real, deterministic ZIP archive (`index.html` at the root + `assets/`) for components using uploaded media that can't travel through the single-file/paste formats — see `docs/MEDIA-ASSET-PIPELINE.md`
+- Portable project package (`.rise-project.zip`): a saved project's uploaded media travels with it (not just IndexedDB references), importable in a different browser/profile
+- SCORM packaging is visible in Settings as a selectable format, but no package is produced — this remains unimplemented
 
 ## Known limitations
 
 - Only five component generators are separated into `components/`; remaining generators are coupled to `js/preview.js`.
 - Theme values are centralized, but some legacy component layout values remain in the shared preview stylesheet rather than being represented as design tokens.
 - Default content for remaining legacy components is coupled to `app.js`.
-- Media is local to the current browser profile and is not included in project JSON files.
-- Single-file HTML export embeds only small raster images; SVG, large images, audio, video, and captions require future ZIP packaging.
-- ZIP and SCORM export are placeholders.
+- Media is local to the current browser profile and is not included in the plain project JSON export — use the portable project package export for that.
+- Single-file HTML export embeds only small raster images; SVG, large images, audio, video, and captions require the Rise Project ZIP instead (now implemented).
+- SCORM export remains a placeholder — no package is produced.
 - AI generation is a local timed simulation, not a connected AI service.
 - Several generated examples depend on external media and Google Fonts being available online.
 - The application is a local browser MVP and has no collaboration, authentication, server sync, or deployment workflow.
 - Chromium is the initial automated browser target; Firefox, WebKit, Rise, Moodle, and assistive-technology verification remain manual.
 
-See `docs/KNOWN-ISSUES.md` for confirmed implementation details, `docs/ARCHITECTURE.md` for module boundaries, `docs/COMPONENT-SCHEMA.md` for the data model, `docs/EXPORT-CONTRACT.md` for how preview and export stay in sync, `docs/SECURITY.md` for the sanitization/threat model, `docs/TESTING-STRATEGY.md` for the test/lint/typecheck/build pipeline, and `docs/RISE-COMPATIBILITY-MATRIX.md` (with `docs/RISE-TEST-CHECKLIST.md`, `docs/MOODLE-SCORM-TEST-CHECKLIST.md`, and `docs/COMPATIBILITY-RESULTS.md`) for Rise/LMS/browser compatibility classification.
+See `docs/KNOWN-ISSUES.md` for confirmed implementation details, `docs/ARCHITECTURE.md` for module boundaries, `docs/COMPONENT-SCHEMA.md` for the data model, `docs/EXPORT-CONTRACT.md` for how preview and export stay in sync, `docs/SECURITY.md` for the sanitization/threat model, `docs/TESTING-STRATEGY.md` for the test/lint/typecheck/build pipeline, `docs/RISE-COMPATIBILITY-MATRIX.md` (with `docs/RISE-TEST-CHECKLIST.md`, `docs/MOODLE-SCORM-TEST-CHECKLIST.md`, and `docs/COMPATIBILITY-RESULTS.md`) for Rise/LMS/browser compatibility classification, `docs/COMPLETION-INTEGRATION.md` for exactly what "completion" does and does not mean, `docs/VALIDATION-RULES.md` for the full export-preflight rule catalog, `docs/ACCESSIBILITY-CONFORMANCE.md` for WCAG 2.2 AA conformance status, automated coverage, and required manual testing, and `docs/MEDIA-ASSET-PIPELINE.md` for the full media upload/validation/export pipeline.
 
 ## MVP objectives
 

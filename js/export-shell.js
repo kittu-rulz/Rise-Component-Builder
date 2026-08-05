@@ -3,6 +3,8 @@
 // markup/CSS/JS live in components/*.js and are composed in here — this file owns none
 // of it. See docs/EXPORT-CONTRACT.md for the full pipeline description.
 
+import { normalizeHeadingLevel } from './utilities.js';
+
 export const CSP_META = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' http: https: data: blob:; media-src 'self' http: https: blob:; connect-src 'none'; base-uri 'none'; form-action 'none'";
 
 // Reset + shared block chrome (title/headline/description). No component-specific rules.
@@ -131,12 +133,22 @@ export const SHARED_A11Y_CSS = `
  * The shared accessibility/completion-tracking JS every component calls into
  * (`viewedItems.add(idx); updateProgress();` / `updateTrackerComplete()`), scoped to
  * this export's instanceId so multiple exports pasted onto one page never collide.
+ *
+ * Three separated concepts (docs/COMPLETION-INTEGRATION.md):
+ *   1. Internal interaction progress — `viewedItems`/`updateProgress()`: which items have
+ *      been interacted with, and the visible/ARIA percentage. Always active whenever
+ *      trackCompletion is on, regardless of whether anything is embedding this component.
+ *   2. Internal component completion — `evaluateComponentCompletion()`: the one-time
+ *      percent-reaches-100 transition. Purely internal state; does not by itself imply
+ *      any host noticed.
+ *   3. Parent-window notification — delegated entirely to `RiseComponentCompletion`
+ *      (js/completion.js), which decides *whether* and *how* to tell a host, and is the
+ *      only thing here that touches window.parent/postMessage.
  */
 export function renderSharedA11yScript({ instanceId, trackCompletion, totalItems, completionMessage }) {
   return `
     var viewedItems = new Set();
     var totalItems = ${Number(totalItems) || 1};
-    var completionAnnounced = false;
     var completionMessage = ${completionMessage};
 
     function announce(message) {
@@ -146,19 +158,23 @@ export function renderSharedA11yScript({ instanceId, trackCompletion, totalItems
       window.setTimeout(function() { status.textContent = message; }, 20);
     }
 
+    // Concept #1: internal interaction progress (ARIA valuenow/valuetext only — no
+    // completion decision here).
     function setProgressAccessibility(percent) {
       var progress = document.getElementById('${instanceId}-progress-bar');
       if (progress) {
         progress.setAttribute('aria-valuenow', String(percent));
         progress.setAttribute('aria-valuetext', percent + ' percent complete');
       }
-      if (percent === 100 && !completionAnnounced) {
-        completionAnnounced = true;
-        announce(completionMessage);
-        if (window.parent && window.parent.postMessage) {
-          window.parent.postMessage({ type: 'RISE_BLOCK_COMPLETE', status: 'completed' }, '*');
-        }
-      }
+    }
+
+    // Concept #2: internal component completion. Fires the (adapter-owned) notification
+    // exactly once per completed state — see RiseComponentCompletion.notifyComplete().
+    function evaluateComponentCompletion(percent) {
+      if (percent < 100) return;
+      if (typeof RiseComponentCompletion === 'undefined' || RiseComponentCompletion.hasCompleted()) return;
+      announce(completionMessage);
+      RiseComponentCompletion.notifyComplete();
     }
 
     function updateProgress() {
@@ -171,6 +187,7 @@ export function renderSharedA11yScript({ instanceId, trackCompletion, totalItems
         bar.style.width = percent + '%';
       }
       setProgressAccessibility(percent);
+      evaluateComponentCompletion(percent);
     }
 
     function updateTrackerComplete() {
@@ -182,6 +199,17 @@ export function renderSharedA11yScript({ instanceId, trackCompletion, totalItems
         bar.style.width = '100%';
       }
       setProgressAccessibility(100);
+      evaluateComponentCompletion(100);
+    }
+
+    // Inbound-reset target (js/completion.js calls this by name after validating a
+    // 'reset' message): clears interaction progress and re-arms completion so a fresh
+    // completion can fire again later.
+    function resetComponentProgress() {
+      viewedItems = new Set();
+      updateProgress();
+      if (typeof RiseComponentCompletion !== 'undefined') RiseComponentCompletion.reset();
+      announce('Progress reset.');
     }`;
 }
 
@@ -200,8 +228,12 @@ const BOOTSTRAP_JS = `
  */
 export function renderShell({
   instanceId, tokensCSS, fontQuery, componentCSS, blockLabel, blockHeadline, blockDesc,
-  componentHTML, completionTrackerHTML, sharedA11yScript, componentJS
+  blockHeadingLevel, componentHTML, completionTrackerHTML, sharedA11yScript, componentJS
 }) {
+  // Rise embeds this markup inside a lesson page that has its own h1, so the wrapping
+  // headline's tag is author-configurable (defaults to h2) rather than a hardcoded h1 —
+  // see docs/ACCESSIBILITY-CONFORMANCE.md.
+  const headingTag = normalizeHeadingLevel(blockHeadingLevel);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -222,7 +254,7 @@ ${SHARED_A11Y_CSS}
   <main class="rise-block-wrapper" aria-labelledby="${instanceId}-block-headline">
     <div class="block-header">
       <div class="block-label">${blockLabel}</div>
-      <h1 class="block-headline" id="${instanceId}-block-headline">${blockHeadline}</h1>
+      <${headingTag} class="block-headline" id="${instanceId}-block-headline">${blockHeadline}</${headingTag}>
       <div class="block-desc">${blockDesc}</div>
     </div>
 

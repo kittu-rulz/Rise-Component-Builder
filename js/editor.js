@@ -2,6 +2,9 @@ import { createDefaultItem } from './editor-schemas.js';
 import { sanitizeRichText } from './utilities.js';
 import { isMediaReference } from './media.js';
 import { createMediaUploadControl } from './media-upload.js';
+import { getAccessibilityWarning, isEmpty, validateSchemaField } from './field-validation.js';
+
+export { validateSchemaField } from './field-validation.js';
 
 export const supportedEditorFieldTypes = [
   'text', 'textarea', 'number', 'range', 'select', 'checkbox', 'radio',
@@ -24,46 +27,6 @@ export function validateActiveComponent(state, componentRegistry) {
   return component ? component.validate(state.config) : { valid: true, errors: [] };
 }
 
-function isEmpty(value) {
-  return value === undefined || value === null || (typeof value === 'string' && !value.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim());
-}
-
-export function validateSchemaField(field, value, items = []) {
-  const errors = [];
-  if (field.required && isEmpty(value)) errors.push(`${field.label} is required.`);
-  if (field.requiredOne && !items.some(item => Boolean(item[field.id]))) errors.push(`Select one ${field.label.toLowerCase()}.`);
-  if (isEmpty(value)) return errors;
-
-  if (field.type === 'number' || field.type === 'range') {
-    const number = Number(value);
-    if (!Number.isFinite(number)) errors.push(`${field.label} must be a number.`);
-    if (field.min !== undefined && number < field.min) errors.push(`${field.label} must be at least ${field.min}.`);
-    if (field.max !== undefined && number > field.max) errors.push(`${field.label} must be no more than ${field.max}.`);
-  }
-  if (field.type === 'url' && value && !isMediaReference(value)) {
-    try {
-      const url = new URL(value);
-      if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
-    } catch { errors.push(`${field.label} must be a valid URL.`); }
-  }
-  if (['image', 'audio', 'video'].includes(field.type) && value && !isMediaReference(value) && !String(value).startsWith('data:')) {
-    try {
-      const url = new URL(value);
-      if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
-    } catch { errors.push(`${field.label} must be a valid web URL or uploaded file.`); }
-  }
-  if (field.type === 'color' && value && !/^#[0-9a-f]{6}$/i.test(String(value))) errors.push(`${field.label} must be a six-digit hexadecimal color.`);
-  if (field.maxLength && String(value).length > field.maxLength) errors.push(`${field.label} must be ${field.maxLength} characters or fewer.`);
-  if (field.pattern && !new RegExp(field.pattern).test(String(value))) errors.push(field.patternMessage || `${field.label} has an invalid format.`);
-  return errors;
-}
-
-function getAccessibilityWarning(field, value, model) {
-  if (field.warningWhen && isEmpty(model[field.warningWhen])) return '';
-  if (field.warningUnless && !model[field.warningUnless] && isEmpty(value)) return field.warningMessage || `${field.label} is recommended for accessibility.`;
-  if (field.warningUnlessAny && !field.warningUnlessAny.some(id => !isEmpty(model[id]))) return field.warningMessage || 'Provide an accessible media alternative.';
-  return '';
-}
 
 function createLabel(field, controlId) {
   const label = document.createElement('label');
@@ -378,5 +341,29 @@ export function createSchemaItemEditor({ container, onChange }) {
     render(lastRender);
   }
 
-  return { render };
+  // Updates just the item-card issue badges in place, without rebuilding the item
+  // list — safe to call on every keystroke (unlike render(), which would otherwise
+  // need to run on every change to keep badges live, and would drop focus/collapsed
+  // state mid-edit). See docs/VALIDATION-RULES.md "Where preflight results appear".
+  function refreshIssueBadges(issuesByItem) {
+    container.querySelectorAll('.dynamic-item-card[data-index]').forEach(card => {
+      const index = Number(card.dataset.index);
+      const heading = card.querySelector('.item-collapse-btn');
+      if (!heading) return;
+      const existing = heading.querySelector('.item-issue-badge');
+      const entry = issuesByItem?.get(index);
+      if (!entry || (!entry.blocking && !entry.warning)) {
+        existing?.remove();
+        return;
+      }
+      const badge = existing || document.createElement('span');
+      const count = entry.blocking + entry.warning;
+      badge.className = `item-issue-badge ${entry.blocking ? 'is-blocking' : 'is-warning'}`;
+      badge.textContent = String(count);
+      badge.setAttribute('aria-label', `${count} preflight issue${count === 1 ? '' : 's'} for this item`);
+      if (!existing) heading.appendChild(badge);
+    });
+  }
+
+  return { render, refreshIssueBadges };
 }

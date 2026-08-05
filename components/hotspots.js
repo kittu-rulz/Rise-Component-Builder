@@ -192,6 +192,13 @@ export function generateJS() {
             toggleHotspot(parseInt(pin.getAttribute('data-idx'), 10), pin);
           }
         });
+        // Close this pin's tooltip when keyboard focus moves away from it (e.g. via
+        // Tab), rather than leaving it visibly open while an unrelated pin is focused.
+        pin.addEventListener('blur', function() {
+          if (pin.classList.contains('active')) {
+            toggleHotspot(parseInt(pin.getAttribute('data-idx'), 10), pin);
+          }
+        });
       });
 
       document.addEventListener('click', function(event) {

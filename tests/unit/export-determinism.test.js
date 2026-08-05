@@ -6,7 +6,7 @@ import { toRgba } from '../../js/utilities.js';
 import { JSDOM } from 'jsdom';
 
 const theme = BUILT_IN_THEMES.find(entry => entry.id === DEFAULT_THEME_ID);
-const componentRegistry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, entry.renderer]));
+const componentRegistry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, { ...entry.renderer, version: entry.version }]));
 
 const baseFields = {
   blockTitle: 'TEST BLOCK', blockHeadline: 'Test Headline', blockDesc: 'Test description.',

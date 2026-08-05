@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { compileExportFixture } from '../fixtures/export-fixture-definitions.mjs';
 
 // These specs load the committed standalone export fixtures directly — the same files
 // a real user gets from the Export modal's "Download .HTML File" button — with NO
@@ -99,6 +100,45 @@ test.describe('exported fixtures are keyboard-operable standalone', () => {
     await expect(playBtn).toHaveAttribute('aria-pressed', 'true');
     await page.keyboard.press('Space');
     await expect(playBtn).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  // Gallery and video aren't among the 7 committed fixtures (docs/RISE-COMPATIBILITY-MATRIX.md
+  // deliberately keeps that set small and representative), so these two compile a one-off
+  // export via the same fixture helper the completion tests use, instead of adding new
+  // permanent fixture files.
+  test('video player: Enter/Space toggle play state and arrow keys move the scrub bar', async ({ page }) => {
+    await page.setContent(compileExportFixture('video-frame'));
+    const playBtn = page.locator('.video-mini-play');
+    await playBtn.focus();
+    await page.keyboard.press('Enter');
+    await expect(playBtn).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Space');
+    await expect(playBtn).toHaveAttribute('aria-pressed', 'false');
+
+    const scrubBar = page.locator('.video-timeline-scrub');
+    await scrubBar.focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(scrubBar).toHaveAttribute('aria-valuenow', '5');
+    await page.keyboard.press('Home');
+    await expect(scrubBar).toHaveAttribute('aria-valuenow', '0');
+  });
+
+  test('image gallery: Enter opens the lightbox, arrow keys navigate, and Escape restores focus', async ({ page }) => {
+    await page.setContent(compileExportFixture('image-gallery'));
+    const cards = page.locator('.gallery-item-card');
+    await cards.first().focus();
+    await page.keyboard.press('Enter');
+    const lightbox = page.locator('.lightbox-overlay');
+    await expect(lightbox).toBeVisible();
+    const caption = page.locator('.lightbox-caption');
+    const firstCaption = await caption.textContent();
+    await page.keyboard.press('ArrowRight');
+    await expect(caption).not.toHaveText(firstCaption || '');
+    await page.keyboard.press('ArrowLeft');
+    await expect(caption).toHaveText(firstCaption || '');
+    await page.keyboard.press('Escape');
+    await expect(lightbox).toBeHidden();
+    await expect(cards.first()).toBeFocused();
   });
 });
 

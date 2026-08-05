@@ -17,6 +17,18 @@ test('application loads without console errors and renders the catalog', async (
   expect(errors).toEqual([]);
 });
 
+test('an unanticipated runtime error surfaces a generic toast and logs full detail to the console, not to the user', async ({ page }) => {
+  await page.goto('/');
+  const consoleErrors = [];
+  page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  await page.evaluate(() => window.dispatchEvent(new ErrorEvent('error', { error: new Error('harmless test error: internal detail xyz123'), message: 'harmless test error: internal detail xyz123' })));
+  const toast = page.locator('.toast-error');
+  await expect(toast).toBeVisible();
+  await expect(toast).not.toContainText('xyz123');
+  await expect(toast).toContainText(/unexpected/i);
+  expect(consoleErrors.some(text => text.includes('xyz123'))).toBe(true);
+});
+
 test('sidebar storage meter reports measured browser storage usage', async ({ page }) => {
   await page.goto('/');
   const label = page.locator('#storage-usage-label');

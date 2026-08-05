@@ -179,19 +179,21 @@ Validation is intentionally layered, not centralized in one file, because each l
 
 Full detail and the specific threat each sanitizer defends against is in `docs/SECURITY.md`.
 
-### 11. Rise/LMS communication
+### 11. Completion adapter and Rise/LMS communication
 
-**Owns:** the generated document's inline `<script>`, emitted by `js/preview.js` (§4), and nothing else — the _builder application_ has no network layer and no direct Rise/Moodle/LMS integration at all.
+**Owns:** the generated document's inline `<script>`, emitted by `js/preview.js` (§4) and composed from `js/export-shell.js` (internal progress/completion) plus `js/completion.js` (the adapter/messaging layer) — and nothing else. The _builder application_ has no network layer and no direct Rise/Moodle/LMS integration at all.
 
-The only outbound communication the generated component ever performs toward its host page is a single, fixed-shape `postMessage`, sent once, when completion tracking is enabled and the learner finishes the interaction:
+Completion is deliberately split into three separated concepts (full detail, message schema, and exactly what is/isn't verified: `docs/COMPLETION-INTEGRATION.md`):
 
-```js
-window.parent.postMessage({ type: 'RISE_BLOCK_COMPLETE', status: 'completed' }, '*');
-```
+1. **Internal interaction progress** — `viewedItems`/`updateProgress()` (`js/export-shell.js`): which items have been interacted with, and the visible/ARIA percentage. Only present when `trackCompletion` is on.
+2. **Internal component completion** — `evaluateComponentCompletion()` (`js/export-shell.js`): the one-time percent-reaches-100 transition. Purely internal; does not by itself imply any host noticed.
+3. **Parent-window notification** — `RiseComponentCompletion` (`js/completion.js`), the only code that touches `window.parent`/`postMessage`. It selects one of three adapters at runtime (standalone/not embedded → internal-only; embedded with `postMessage` available → send; embedded without it → no-op) and sends a documented, versioned envelope (`{ channel, schemaVersion, type: 'completion', componentId, componentVersion, instanceId, status, timestamp }`) exactly once, guarded against duplicates. It also listens for a validated inbound `reset` message (same envelope shape, `type: 'reset'`) that clears internal progress and re-arms completion.
 
-There is no inbound message listener, no other outbound message type, and no other channel (no `fetch`, no `XMLHttpRequest`, no `WebSocket`) — consistent with the generated document's CSP (`connect-src 'none'`, `docs/SECURITY.md`). Everything else described as "Rise/LMS" integration in the product docs (embedding the `srcdoc` iframe, pasting the HTML fragment, exporting standalone HTML) is a static-output concern owned by §5, not a live communication channel.
+This entire layer — steps 1–3 — is only emitted when `trackCompletion` is enabled; a component with completion tracking off ships none of this code and registers no `message` listener at all.
 
-**Rule:** if real bidirectional LMS communication (e.g. reading a learner id, writing a SCORM score) is ever added, it must be introduced as an explicit, documented message contract here — not folded into the existing `RISE_BLOCK_COMPLETE` message or scattered across generator branches.
+There is no other outbound message type and no other channel (no `fetch`, no `XMLHttpRequest`, no `WebSocket`) — consistent with the generated document's CSP (`connect-src 'none'`, `docs/SECURITY.md`). Everything else described as "Rise/LMS" integration in the product docs (embedding the `srcdoc` iframe, pasting the HTML fragment, exporting standalone HTML) is a static-output concern owned by §5, not a live communication channel. Whether Rise, Moodle, SCORM, or xAPI actually consume this message is not verified by this project — see `docs/RISE-COMPATIBILITY-MATRIX.md` and `docs/COMPLETION-INTEGRATION.md`.
+
+**Rule:** if real bidirectional LMS communication (e.g. reading a learner id, writing a SCORM score, an xAPI statement) is ever added, it must be introduced as a new, explicitly documented adapter matching the interface in `js/completion.js` — not folded into the existing completion envelope or scattered across generator branches.
 
 ## Build
 

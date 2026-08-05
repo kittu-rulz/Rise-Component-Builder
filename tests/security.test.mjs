@@ -146,6 +146,25 @@ test('unsafe link and media URLs are removed from generated markup', () => {
   assert.ok(!imageHtml.includes('data:text/html'));
 });
 
+test('rich text cannot inject id/name attributes (DOM clobbering)', () => {
+  const sanitized = sanitizeRichText('<p id="config" name="getElementById">text</p><img id="settings" name="location">');
+  // The allowlist only accepts a bare `<p>` with no attributes at all — a `<p id=...>`
+  // variant doesn't match it and is escaped wholesale to inert text, so no live tag
+  // carrying an id/name attribute ever reaches the DOM.
+  assert.ok(!sanitized.includes('<p '));
+  assert.ok(!sanitized.includes('<img'));
+  assert.ok(sanitized.includes('&lt;p id=&quot;config&quot;'));
+  assert.ok(sanitized.includes('text</p>'));
+});
+
+test('the exported iframe embed snippet does not grant allow-same-origin', () => {
+  const html = generateIframeContent(stateFor('accordion'), registry, toRgba);
+  const payload = buildExportPayload(html);
+  const sandbox = /sandbox="([^"]*)"/.exec(payload.iframe)?.[1] || '';
+  assert.ok(sandbox.includes('allow-scripts'));
+  assert.ok(!sandbox.includes('allow-same-origin'));
+});
+
 test('iframe srcdoc export cannot escape its attribute', () => {
   const html = generateIframeContent(stateFor('accordion'), registry, toRgba);
   const payload = buildExportPayload(html);

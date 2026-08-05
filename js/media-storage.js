@@ -66,12 +66,31 @@ const defaultStore = createIndexedDBMediaStore();
 const runtimeObjectURLs = new Map();
 
 export async function saveMediaRecord(record, store = defaultStore) {
-  await store.put(record);
+  try {
+    await store.put(record);
+  } catch (error) {
+    // Same friendly-rewrite policy as js/storage.js's localStorage quota handling —
+    // IndexedDB throws a QuotaExceededError under the same DOMException name.
+    throw new Error(error?.name === 'QuotaExceededError'
+      ? 'This browser’s local media storage is full. Delete unused projects/media or free up disk space, then try again.'
+      : 'This browser could not store the uploaded file locally.');
+  }
   return createMediaReference(record);
 }
 
 export async function getMediaRecord(id, store = defaultStore) {
   return store.get(id);
+}
+
+// Finds an already-stored record with the same content hash and kind, so an author
+// re-uploading the same picture (even under a different filename) can reuse the
+// existing asset instead of the app silently storing a second copy. Never blocks an
+// upload — a `null` contentHash (digest unavailable, see js/media.js#computeFileHash)
+// simply means no duplicate can be found, not that anything is wrong with the file.
+export async function findDuplicateByHash(contentHash, kind, store = defaultStore) {
+  if (!contentHash) return null;
+  const all = await store.getAll();
+  return all.find(record => record.contentHash === contentHash && record.kind === kind) || null;
 }
 
 export function peekMediaObjectURL(id) {

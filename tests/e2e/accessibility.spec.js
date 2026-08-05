@@ -15,6 +15,43 @@ test('application controls have accessible names and form labels', async ({ page
   expect(results.violations).toEqual([]);
 });
 
+// Scoped to the builder's own chrome (not the live-preview iframe, which renders the
+// exported component's own author-chosen theme colors — that's covered separately by
+// the theme contrast-report system, js/themes.js#contrastRatio). Catches real contrast
+// or landmark regressions in the app shell itself rather than relying on manual review.
+test('builder chrome has sufficient color contrast and one main landmark', async ({ page }) => {
+  await page.goto('/');
+  const results = await new AxeBuilder({ page }).exclude('#live-preview-iframe').withRules([
+    'color-contrast', 'landmark-one-main', 'region'
+  ]).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('editor screen chrome has sufficient color contrast in both light and dark mode', async ({ page }) => {
+  await openAccordion(page);
+  const lightResults = await new AxeBuilder({ page }).include('#editor-state').exclude('#live-preview-iframe')
+    .withRules(['color-contrast']).analyze();
+  expect(lightResults.violations).toEqual([]);
+
+  await page.locator('#btn-theme').click();
+  const darkResults = await new AxeBuilder({ page }).include('#editor-state').exclude('#live-preview-iframe')
+    .withRules(['color-contrast']).analyze();
+  expect(darkResults.violations).toEqual([]);
+});
+
+test('narrow viewport (320px) does not force horizontal scrolling on the app shell', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await openAccordion(page);
+  const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
+  expect(hasHorizontalOverflow).toBe(false);
+});
+
+test('interactive controls meet the WCAG 2.2 24x24px minimum target size', async ({ page }) => {
+  await openAccordion(page);
+  const results = await new AxeBuilder({ page }).exclude('#live-preview-iframe').withRules(['target-size']).analyze();
+  expect(results.violations).toEqual([]);
+});
+
 test('generated accordion has valid ARIA references and state changes', async ({ page }) => {
   const frame = await openAccordion(page);
   const brokenReferences = await frame.locator('body').evaluate(body => [...body.querySelectorAll('[aria-controls], [aria-labelledby]')]

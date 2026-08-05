@@ -6,7 +6,7 @@ import { DEFAULT_DEVICE_MODE, isValidDeviceMode } from './device-preview.js';
 
 export const SCHEMA_VERSION = 2;
 
-const KEYS = {
+export const KEYS = {
   projects: 'rise-builder-projects-v1',
   draft: 'rise-builder-draft-v1',
   favorites: 'rise-builder-favorites-v1',
@@ -22,7 +22,12 @@ const DEFAULT_SETTINGS = {
   exportFormat: 'web',
   autosave: true,
   aiEnabled: false,
-  mediaLimitsMb: { image: 10, audio: 30, video: 100, svg: 2 }
+  mediaLimitsMb: { image: 10, audio: 30, video: 100, svg: 2 },
+  // Empty string = unconfigured: exported components post/accept completion messages to/from
+  // any origin ('*'), and accept them from any origin — documented default, see
+  // docs/COMPLETION-INTEGRATION.md "Why the default targetOrigin is '*'". When set, this
+  // exact origin is required for every inbound message and used as the outbound targetOrigin.
+  completionParentOrigin: ''
 };
 
 export const MEDIA_LIMIT_BOUNDS_MB = {
@@ -69,6 +74,11 @@ export function createProjectId() {
   return globalThis.crypto?.randomUUID?.() || `project-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// Blocked outright regardless of the general key-name pattern below: these are the
+// property names a downstream `target[key] = value`-shaped merge (present or future)
+// could use to repoint an object's prototype rather than set a normal data field.
+const DANGEROUS_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 function isSafeProjectValue(value, depth = 0) {
   if (depth > 12) return false;
   if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) return true;
@@ -77,7 +87,14 @@ function isSafeProjectValue(value, depth = 0) {
   if ('objectUrl' in value || 'blob' in value) return false;
   if (value.source === 'upload' && !isMediaReference(value)) return false;
   return Object.entries(value).length <= 100 && Object.entries(value).every(([key, entry]) =>
-    /^[a-zA-Z0-9_-]+$/.test(key) && isSafeProjectValue(entry, depth + 1));
+    /^[a-zA-Z0-9_-]+$/.test(key) && !DANGEROUS_KEYS.has(key) && isSafeProjectValue(entry, depth + 1));
+}
+
+const ORIGIN_PATTERN = /^https?:\/\/[^/]+$/i;
+
+function normalizeCompletionParentOrigin(value) {
+  const trimmed = typeof value === 'string' ? value.trim() : '';
+  return ORIGIN_PATTERN.test(trimmed) ? trimmed : DEFAULT_SETTINGS.completionParentOrigin;
 }
 
 export function normalizeSettings(value) {
@@ -88,7 +105,8 @@ export function normalizeSettings(value) {
     exportFormat: ['web', 'zip', 'scorm'].includes(value.exportFormat) ? value.exportFormat : DEFAULT_SETTINGS.exportFormat,
     autosave: typeof value.autosave === 'boolean' ? value.autosave : DEFAULT_SETTINGS.autosave,
     aiEnabled: typeof value.aiEnabled === 'boolean' ? value.aiEnabled : DEFAULT_SETTINGS.aiEnabled,
-    mediaLimitsMb: normalizeMediaLimitsMb(value.mediaLimitsMb)
+    mediaLimitsMb: normalizeMediaLimitsMb(value.mediaLimitsMb),
+    completionParentOrigin: normalizeCompletionParentOrigin(value.completionParentOrigin)
   };
 }
 

@@ -1,5 +1,7 @@
-import { formatFileSize, isMediaReference, MEDIA_LIMITS, prepareMediaFile } from './media.js';
-import { ensureMediaObjectURL, peekMediaObjectURL, saveMediaRecord } from './media-storage.js';
+import {
+  createMediaReference, formatFileSize, IMAGE_RESIZE_THRESHOLD_PX, isMediaReference, MEDIA_LIMITS, prepareMediaFile
+} from './media.js';
+import { ensureMediaObjectURL, findDuplicateByHash, peekMediaObjectURL, saveMediaRecord } from './media-storage.js';
 
 const ACCEPT = Object.freeze({
   image: '.jpg,.jpeg,.png,.webp,.svg,.gif,image/jpeg,image/png,image/webp,image/svg+xml,image/gif',
@@ -96,6 +98,8 @@ export function createMediaUploadControl({
   details.className = 'media-upload-details';
   const preview = document.createElement('div');
   preview.className = 'media-preview-shell';
+  const sourceBadge = document.createElement('span');
+  sourceBadge.className = 'media-source-badge';
   const metadata = document.createElement('div');
   metadata.className = 'media-file-metadata';
   const removeButton = document.createElement('button');
@@ -117,11 +121,30 @@ export function createMediaUploadControl({
     root.classList.toggle('has-error', Boolean(message));
   }
 
+  // Split out from renderValue() so the plain-text URL input's keystroke handler can keep
+  // the badge accurate without rebuilding the preview/metadata on every keystroke (which
+  // would otherwise refetch an in-progress URL from the network on each character typed).
+  function updateSourceBadge(hasUpload, isMissing) {
+    // Always visible, regardless of upload state — clear local-vs-external indication is
+    // a requirement in its own right (docs/MEDIA-ASSET-PIPELINE.md), not just something
+    // implied by which sub-control happens to be enabled.
+    sourceBadge.hidden = false;
+    sourceBadge.classList.toggle('is-missing', isMissing);
+    sourceBadge.classList.toggle('is-external', !hasUpload && Boolean(currentValue));
+    sourceBadge.classList.toggle('is-empty', !hasUpload && !currentValue);
+    sourceBadge.textContent = isMissing
+      ? 'Missing local file'
+      : hasUpload ? 'Local upload (stored in this browser)'
+      : currentValue ? 'External URL'
+      : 'No file selected';
+  }
+
   function renderValue() {
     preview.replaceChildren();
     metadata.replaceChildren();
     const reference = isMediaReference(currentValue) ? currentValue : null;
     const source = reference ? peekMediaObjectURL(reference.mediaId) : typeof currentValue === 'string' ? currentValue : '';
+    const isMissing = Boolean(reference) && !source;
     const previewElement = createPreview(kind, source, reference?.name);
     if (previewElement) preview.appendChild(previewElement);
     if (reference) {
@@ -130,8 +153,16 @@ export function createMediaUploadControl({
       const meta = document.createElement('span');
       meta.textContent = `${formatFileSize(reference.size)} • ${reference.mimeType}${Number.isFinite(reference.duration) ? ` • ${Math.round(reference.duration)} seconds` : ''}`;
       metadata.append(name, meta);
+      if (isMissing) {
+        const missingNotice = document.createElement('span');
+        missingNotice.className = 'media-missing-notice';
+        missingNotice.setAttribute('role', 'alert');
+        missingNotice.textContent = 'This file is missing from local storage (cleared browser data, or a different browser/device). Use “Replace file” to re-upload it.';
+        metadata.appendChild(missingNotice);
+      }
     }
     const hasUpload = Boolean(reference);
+    updateSourceBadge(hasUpload, isMissing);
     details.hidden = !hasUpload;
     externalButton.hidden = !hasUpload;
     urlInput.disabled = hasUpload;
@@ -146,10 +177,20 @@ export function createMediaUploadControl({
     dropZone.setAttribute('aria-busy', 'true');
     try {
       const references = [];
+      let resizedCount = 0;
+      let reusedCount = 0;
       for (const file of selected) {
         const duration = await readDuration(file, kind);
         const record = await prepareMediaFile(file, kind, { duration, limits });
-        const reference = await saveMediaRecord(record, store);
+        if (record.resized) resizedCount += 1;
+        const duplicate = await findDuplicateByHash(record.contentHash, kind, store);
+        let reference;
+        if (duplicate) {
+          reusedCount += 1;
+          reference = createMediaReference(duplicate);
+        } else {
+          reference = await saveMediaRecord(record, store);
+        }
         await ensureMediaObjectURL(reference.mediaId, store);
         references.push(reference);
       }
@@ -158,7 +199,11 @@ export function createMediaUploadControl({
       renderValue();
       if (references.length > 1 && onMultiple) onMultiple(references);
       else onChange(currentValue);
-      status.textContent = `${references.length} file${references.length === 1 ? '' : 's'} uploaded.`;
+      const uploadedMessage = `${references.length} file${references.length === 1 ? '' : 's'} uploaded.`;
+      const notices = [];
+      if (resizedCount) notices.push(`${resizedCount} image${resizedCount === 1 ? ' was' : 's were'} resized to fit within ${IMAGE_RESIZE_THRESHOLD_PX}px for optimal performance.`);
+      if (reusedCount) notices.push(`${reusedCount} file${reusedCount === 1 ? '' : 's'} matched an asset already uploaded to this project and reused it instead of storing a duplicate.`);
+      status.textContent = notices.length ? `${uploadedMessage} ${notices.join(' ')}` : uploadedMessage;
     } catch (uploadError) {
       showError(uploadError.message || 'The file could not be uploaded.');
     } finally {
@@ -171,6 +216,7 @@ export function createMediaUploadControl({
   urlInput.addEventListener('input', () => {
     currentValue = urlInput.value;
     showError();
+    updateSourceBadge(false, false);
     onChange(currentValue);
   });
   browseButton.addEventListener('click', event => { event.stopPropagation(); fileInput.click(); });
@@ -204,7 +250,7 @@ export function createMediaUploadControl({
     status.textContent = 'External URL mode enabled.';
   });
 
-  root.append(urlRow, guidance, dropZone, details, error, status);
+  root.append(urlRow, sourceBadge, guidance, dropZone, details, error, status);
   renderValue();
   return { element: root, validationControl: urlInput, processFiles, getValue: () => currentValue };
 }

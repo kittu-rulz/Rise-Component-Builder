@@ -55,3 +55,39 @@ export function memoryLocalStorage() {
     setItem: (key, value) => values.set(String(key), String(value))
   };
 }
+
+// A minimal in-memory stand-in for the real IDBFactory, just enough to exercise
+// js/media-storage.js#createIndexedDBMediaStore without a real browser. Shared by every
+// test file that needs a media store (tests/media.test.mjs, tests/rise-zip.test.mjs,
+// tests/project-package.test.mjs) so the fake's behavior can't quietly drift between them.
+export function createFakeIndexedDB() {
+  const records = new Map();
+  let database;
+  const makeRequest = operation => {
+    const request = {};
+    queueMicrotask(() => {
+      try { request.result = operation(); request.onsuccess?.(); }
+      catch (error) { request.error = error; request.onerror?.(); }
+    });
+    return request;
+  };
+  const objectStore = {
+    createIndex() {},
+    put: value => makeRequest(() => { records.set(value.id, structuredClone(value)); return value.id; }),
+    get: id => makeRequest(() => records.get(id)),
+    delete: id => makeRequest(() => records.delete(id)),
+    getAll: () => makeRequest(() => [...records.values()])
+  };
+  database = {
+    objectStoreNames: { contains: () => true },
+    createObjectStore: () => objectStore,
+    transaction: () => ({ objectStore: () => objectStore })
+  };
+  return {
+    open() {
+      const request = {};
+      queueMicrotask(() => { request.result = database; request.onsuccess?.(); });
+      return request;
+    }
+  };
+}

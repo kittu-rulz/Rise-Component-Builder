@@ -5,7 +5,7 @@ Only confirmed or directly observable implementation limitations are listed here
 ## Placeholders
 
 - AI Scenario Generator and AI Quiz Generator use a local timer and hardcoded example output. They do not call an AI service.
-- ZIP and SCORM selections are visible, but the package button only shows a warning. No ZIP or SCORM archive is generated.
+- **Resolved**: ZIP export is now real — "Rise Project ZIP" (component + its media, `js/export.js#buildRiseProjectZip`) and "Project package" (a re-importable Builder project + its media, `js/project-package.js`) both produce genuine, deterministic ZIP archives (`js/zip.js`). See `docs/MEDIA-ASSET-PIPELINE.md` and `docs/EXPORT-CONTRACT.md`. **SCORM packaging remains entirely unimplemented** — no `imsmanifest.xml`, no SCORM API wrapper.
 - The export modal contains initial example code in the HTML source, although `app.js` replaces it with generated output when the modal opens.
 
 ## Coupling and duplication (the primary architecture debt) — resolved
@@ -19,7 +19,7 @@ Remaining, smaller items in this area:
 - `index.html` element IDs and `styles.css` class names are coupled to selectors in `app.js` and `js/editor.js` with no enforced boundary — a refactor risk, not a bug.
 - Every item card's `<section>` is a native HTML5 drag source so cards can be reordered by dragging, but `dragstart`'s `event.target` is always that section, never the descendant a gesture began on. Native dragging is restricted to the `.drag-handle` button (via a separately tracked `mousedown` origin) so range sliders, text inputs, and other interactive controls inside a card are not hijacked mid-drag. See `docs/ARCHITECTURE.md` §3.
 - The HTML-fragment export format (pasting raw markup into a host page) has no automatic CSS class-name scoping — see "CSS isolation, by format" in `docs/EXPORT-CONTRACT.md` for the documented, deliberate trade-off.
-- No ZIP/archive packaging exists yet for components whose media couldn't be inlined (see "Placeholders" above) — this is unrelated to the isolation work above.
+- **Resolved**: ZIP/archive packaging now exists for components whose media couldn't be inlined — see "Placeholders" above.
 
 ## Persistence and validation
 
@@ -28,6 +28,7 @@ Remaining, smaller items in this area:
 - Renaming and creating custom themes, and confirming project/theme deletion, use in-app modal dialogs (`#modal-prompt`, `#modal-confirm`) rather than the browser's native `prompt`/`confirm`; results and errors use reusable toasts.
 - Inline editor errors are rendered, and preview updates continue live regardless; clicking Save re-validates all required schema fields, `minItems`, and every component's `validate()` contract (all 22 components now implement one — `docs/ARCHITECTURE.md` §1), blocking saving with a toast naming the first failing field until it is fixed.
 - Importing a project creates a new project identity, but external resources referenced by its URLs are not copied or verified.
+- A schema-driven, severity-tiered preflight validation engine (`js/validation.js`, `docs/VALIDATION-RULES.md`) now covers general content, knowledge-check, media, and hotspot rules beyond the original required-field/minItems checks, surfaced inline, via item-card badges, a consolidated Preflight panel, and the Export modal. Only Blocking-severity issues prevent export. Item-card badges and the editor header's summary badge update live on every edit (via a targeted DOM patch, not a full re-render); the consolidated panel and the Export modal additionally run the one async rule (broken media references).
 
 ## Media limitations
 
@@ -46,8 +47,9 @@ See `docs/EXPORT-CONTRACT.md` for the full specification; the confirmed gaps are
 - HTML fragment export assumes the target accepts inline styles and scripts.
 - External media requires network access after export; Google Fonts does too, but degrades gracefully to a system sans-serif font when unreachable (confirmed by `tests/e2e/exported-fixtures.spec.js`) rather than breaking.
 - Small raster images can be embedded in standalone HTML. SVG, large images, audio, video, and captions are converted to asset-relative paths and block the single-file download with a warning.
-- The ZIP preparation layer produces a manifest and internal Blob list, but it does not yet create or download an archive containing those assets. SCORM 1.2/2004 packaging does not exist at all.
+- **Resolved**: the Rise Project ZIP export now produces a real, downloadable archive (`index.html` + `assets/` + `assets/manifest.json`) — see `docs/MEDIA-ASSET-PIPELINE.md`. SCORM 1.2/2004 packaging still does not exist at all.
 - Full Rise/Moodle/SCORM compatibility classification, an in-app compatibility report, and manual test checklists are now tracked in `docs/RISE-COMPATIBILITY-MATRIX.md`, `docs/RISE-TEST-CHECKLIST.md`, `docs/MOODLE-SCORM-TEST-CHECKLIST.md`, and `docs/COMPATIBILITY-RESULTS.md` — see those for exactly what is Confirmed vs. Experimental vs. Fallback vs. Unsupported, and why.
+- Completion is a `postMessage` signal only (`docs/COMPLETION-INTEGRATION.md`), sent when a completion-tracked component is embedded. Rise lesson completion, SCORM completion (1.2/2004), LMS course completion, and xAPI statement generation are all **unsupported** — no code exists for any of them, and whether any host actually consumes the completion message is not verified.
 
 ## Accessibility gaps
 

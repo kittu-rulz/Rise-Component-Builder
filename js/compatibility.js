@@ -42,6 +42,16 @@ export const EXPORT_FORMAT_COMPATIBILITY = {
       'Follow docs/RISE-TEST-CHECKLIST.md and record the result in docs/COMPATIBILITY-RESULTS.md to move this to Confirmed.'
     ]
   },
+  'rise-zip': {
+    tier: 'experimental',
+    summary: 'Packages the exact same compiled document every other export format uses, plus every uploaded asset it references as real files under assets/ — automated by this project (a real ZIP, verified byte-for-byte deterministic and readable by standard unzip tools), but never independently run through an actual Rise course.',
+    details: [
+      'This is not a Rise-native upload format — Rise has no documented "upload a ZIP for a custom block" mechanism. The realistic use is hosting the extracted index.html + assets/ wherever your course’s other external content already lives, then embedding it the same way you would any other externally-hosted page (e.g. an iframe pointed at that URL) — or opening index.html directly to verify it works.',
+      'This is also not a SCORM package (no imsmanifest.xml, no SCORM API wrapper) — see docs/RISE-COMPATIBILITY-MATRIX.md for why SCORM remains unsupported.',
+      'Uploaded audio, video, and large images travel as real files here instead of being blocked (single HTML) or limited to small inlineable images — the concrete reason to prefer this option whenever the component uses uploaded media.',
+      'Follow docs/RISE-TEST-CHECKLIST.md and record the result in docs/COMPATIBILITY-RESULTS.md to move this to Confirmed.'
+    ]
+  },
   standaloneDownload: {
     tier: 'confirmed',
     summary: 'Opening the downloaded .html file directly in a browser is the one export path this project has actually automated: the compiled document is exercised by this project’s own Playwright suite in real Chromium, Firefox, and WebKit builds.',

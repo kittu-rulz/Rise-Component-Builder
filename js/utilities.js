@@ -205,6 +205,15 @@ export function sanitizeCSSColor(value, fallback) {
   return /^#[0-9a-f]{6}$/i.test(String(value ?? '')) ? String(value).toUpperCase() : fallback;
 }
 
+// Rise embeds a block inside a page that already has its own h1, so the wrapping
+// headline defaults to h2 rather than forcing an h1 into the host document's outline.
+export const HEADING_LEVELS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+export const DEFAULT_HEADING_LEVEL = 'h2';
+
+export function normalizeHeadingLevel(value) {
+  return HEADING_LEVELS.includes(value) ? value : DEFAULT_HEADING_LEVEL;
+}
+
 export function sanitizeCSSNumber(value, { minimum = 0, maximum = 100, fallback = 0 } = {}) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.min(maximum, Math.max(minimum, number)) : fallback;
@@ -219,6 +228,7 @@ export function sanitizePreviewConfig(config, componentId) {
   result.borderRadius = String(sanitizeCSSNumber(config.borderRadius, { minimum: 0, maximum: 100, fallback: 12 }));
   result.shadowDepth = ['none', 'soft', 'medium', 'premium'].includes(config.shadowDepth) ? config.shadowDepth : 'soft';
   result.iconStyle = ['chevron', 'plus-minus', 'arrow'].includes(config.iconStyle) ? config.iconStyle : 'chevron';
+  result.blockHeadingLevel = normalizeHeadingLevel(config.blockHeadingLevel);
   result.accordionMulti = Boolean(config.accordionMulti);
   result.accordionAnimation = Boolean(config.accordionAnimation);
   result.trackCompletion = Boolean(config.trackCompletion);

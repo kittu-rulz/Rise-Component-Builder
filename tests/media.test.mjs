@@ -2,15 +2,17 @@ import { test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import {
-  MEDIA_LIMITS, createMediaReference, prepareMediaFile, sanitizeSVGText,
-  validateMediaAccessibility, validateMediaFile
+  MEDIA_LIMITS, computeFileHash, computeResizeTarget, createMediaReference, prepareMediaFile,
+  sanitizeSVGText, validateMediaAccessibility, validateMediaFile
 } from '../js/media.js';
 import {
-  createIndexedDBMediaStore, deleteMediaRecord, ensureMediaObjectURL, getRuntimeMediaURLCount,
-  pruneMediaObjectURLs, releaseAllMediaObjectURLs, restoreMediaReferences, saveMediaRecord
+  createIndexedDBMediaStore, deleteMediaRecord, ensureMediaObjectURL, findDuplicateByHash,
+  getRuntimeMediaURLCount, pruneMediaObjectURLs, releaseAllMediaObjectURLs, restoreMediaReferences,
+  saveMediaRecord
 } from '../js/media-storage.js';
 import { prepareMediaExport } from '../js/export.js';
 import { buildProject, getProject, saveProject } from '../js/storage.js';
+import { createFakeIndexedDB } from './fixtures/index.js';
 
 function fileBlob(name, type, content) {
   const extension = name.split('.').pop().toLowerCase();
@@ -25,38 +27,6 @@ function fileBlob(name, type, content) {
   const blob = new Blob([content ?? signatures[extension] ?? 'file-data'], { type });
   Object.defineProperty(blob, 'name', { value: name });
   return blob;
-}
-
-function createFakeIndexedDB() {
-  const records = new Map();
-  let database;
-  const makeRequest = operation => {
-    const request = {};
-    queueMicrotask(() => {
-      try { request.result = operation(); request.onsuccess?.(); }
-      catch (error) { request.error = error; request.onerror?.(); }
-    });
-    return request;
-  };
-  const objectStore = {
-    createIndex() {},
-    put: value => makeRequest(() => { records.set(value.id, structuredClone(value)); return value.id; }),
-    get: id => makeRequest(() => records.get(id)),
-    delete: id => makeRequest(() => records.delete(id)),
-    getAll: () => makeRequest(() => [...records.values()])
-  };
-  database = {
-    objectStoreNames: { contains: () => true },
-    createObjectStore: () => objectStore,
-    transaction: () => ({ objectStore: () => objectStore })
-  };
-  return {
-    open() {
-      const request = {};
-      queueMicrotask(() => { request.result = database; request.onsuccess?.(); });
-      return request;
-    }
-  };
 }
 
 function createMemoryLocalStorage() {
@@ -148,6 +118,17 @@ test('IndexedDB storage restores uploaded media references after reopening', asy
   releaseAllMediaObjectURLs();
 });
 
+test('a reference whose underlying record was cleared (different browser/profile) is reported as missing, not restored', async () => {
+  const store = createIndexedDBMediaStore(createFakeIndexedDB());
+  const record = await prepareMediaFile(fileBlob('gone.png', 'image/png'), 'image', { id: 'gone-image' });
+  const reference = await saveMediaRecord(record, store);
+  await deleteMediaRecord(reference.mediaId, store);
+  const restored = await restoreMediaReferences({ items: [{ content: reference }] }, store);
+  assert.equal(restored.restored, 0);
+  assert.deepEqual(restored.missing, [reference.mediaId]);
+  releaseAllMediaObjectURLs();
+});
+
 test('image replacement and removal update references and clean object URLs', async () => {
   const store = createIndexedDBMediaStore(createFakeIndexedDB());
   const first = await saveMediaRecord(await prepareMediaFile(fileBlob('first.png', 'image/png'), 'image', { id: 'first' }), store);
@@ -219,4 +200,78 @@ test('export embeds small images and emits media metadata manifests and warnings
   ]);
   assert.equal(exported.manifest[1].sourceMediaId, 'export-audio');
   assert.equal(exported.warnings.length, 1);
+});
+
+test('export warns and blanks the reference when the referenced media record no longer exists', async () => {
+  const store = createIndexedDBMediaStore(createFakeIndexedDB());
+  const ghostReference = createMediaReference({
+    id: 'never-saved', kind: 'image', name: 'ghost.png', mimeType: 'image/png', size: 100, createdAt: new Date().toISOString()
+  });
+  const exported = await prepareMediaExport(baseConfig([{ content: ghostReference }]), { store });
+  assert.equal(exported.config.items[0].content, '');
+  assert.equal(exported.manifest.length, 0);
+  assert.equal(exported.warnings.length, 1);
+  assert.match(exported.warnings[0], /missing from local storage/i);
+});
+
+test('the resize-target decision downscales only when the long edge exceeds the threshold', () => {
+  assert.equal(computeResizeTarget(1200, 900, 2000), null);
+  assert.equal(computeResizeTarget(2000, 1500, 2000), null);
+  assert.deepEqual(computeResizeTarget(4000, 3000, 2000), { width: 2000, height: 1500 });
+  assert.deepEqual(computeResizeTarget(3000, 6000, 2000), { width: 1000, height: 2000 });
+  assert.equal(computeResizeTarget(0, 0), null);
+  assert.equal(computeResizeTarget(Number.NaN, 500), null);
+});
+
+test('identical file content hashes the same regardless of filename, and different content hashes differently', async () => {
+  const bytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+  const hashA = await computeFileHash(new Blob([bytes], { type: 'image/png' }));
+  const hashB = await computeFileHash(new Blob([bytes], { type: 'image/png' }));
+  const hashC = await computeFileHash(new Blob([bytes.slice(0, -1)], { type: 'image/png' }));
+  assert.equal(typeof hashA, 'string');
+  assert.equal(hashA.length, 64);
+  assert.equal(hashA, hashB);
+  assert.notEqual(hashA, hashC);
+});
+
+test('uploading the same file content twice is detected as a duplicate and no second blob is stored', async () => {
+  const store = createIndexedDBMediaStore(createFakeIndexedDB());
+  const first = await prepareMediaFile(fileBlob('photo.png', 'image/png'), 'image', { id: 'dup-first' });
+  await saveMediaRecord(first, store);
+  const second = await prepareMediaFile(fileBlob('photo-renamed.png', 'image/png'), 'image', { id: 'dup-second' });
+  assert.equal(first.contentHash, second.contentHash);
+  const duplicate = await findDuplicateByHash(second.contentHash, 'image', store);
+  assert.ok(duplicate);
+  assert.equal(duplicate.id, 'dup-first');
+  const all = await store.getAll();
+  assert.equal(all.length, 1);
+});
+
+test('a different file, or the same bytes under a different media kind, is not treated as a duplicate', async () => {
+  const store = createIndexedDBMediaStore(createFakeIndexedDB());
+  const image = await prepareMediaFile(fileBlob('photo.png', 'image/png'), 'image', { id: 'unique-1' });
+  await saveMediaRecord(image, store);
+  const differentImage = await prepareMediaFile(fileBlob('other.png', 'image/png', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 9, 9, 9])), 'image', { id: 'unique-2' });
+  assert.equal(await findDuplicateByHash(differentImage.contentHash, 'image', store), null);
+  assert.equal(await findDuplicateByHash(image.contentHash, 'video', store), null);
+});
+
+test('findDuplicateByHash never blocks an upload when a content hash is unavailable', async () => {
+  const store = createIndexedDBMediaStore(createFakeIndexedDB());
+  assert.equal(await findDuplicateByHash(null, 'image', store), null);
+  assert.equal(await findDuplicateByHash(undefined, 'image', store), null);
+});
+
+test('a storage-quota failure while saving a media record surfaces a specific, user-actionable error', async () => {
+  const quotaError = new Error('quota exceeded');
+  quotaError.name = 'QuotaExceededError';
+  const failingStore = { put: () => Promise.reject(quotaError) };
+  const record = await prepareMediaFile(fileBlob('big.png', 'image/png'), 'image', { id: 'quota-test' });
+  await assert.rejects(() => saveMediaRecord(record, failingStore), /storage is full/i);
+});
+
+test('an unrelated media storage failure still surfaces a clear, generic error', async () => {
+  const failingStore = { put: () => Promise.reject(new Error('some other browser restriction')) };
+  const record = await prepareMediaFile(fileBlob('big.png', 'image/png'), 'image', { id: 'other-fail-test' });
+  await assert.rejects(() => saveMediaRecord(record, failingStore), /could not store the uploaded file/i);
 });

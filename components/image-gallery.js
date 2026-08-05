@@ -111,21 +111,31 @@ export function generateCSS() {
 export function generateJS(config, instanceId) {
   return `
     var galleryReturnFocus = null;
+    var galleryCurrentIndex = 0;
+    var galleryCards = [];
 
-    function openGalleryLightbox(index, src, trigger) {
+    function showGalleryIndex(index) {
       var lightbox = document.getElementById('${instanceId}-gallery-lightbox');
       var img = document.getElementById('${instanceId}-lightbox-expanded-img');
       var caption = document.getElementById('${instanceId}-lightbox-expanded-caption');
+      var card = galleryCards[index];
+      if (!lightbox || !img || !caption || !card) return;
 
-      img.src = src;
-      img.alt = trigger ? trigger.getAttribute('data-alt') || '' : '';
-      caption.textContent = trigger ? trigger.getAttribute('data-caption') || ('Image ' + (index + 1)) : ('Image ' + (index + 1));
-      lightbox.style.display = 'flex';
-      galleryReturnFocus = trigger || document.activeElement;
-      lightbox.focus();
+      galleryCurrentIndex = index;
+      img.src = card.getAttribute('data-img');
+      img.alt = card.getAttribute('data-alt') || '';
+      caption.textContent = card.getAttribute('data-caption') || ('Image ' + (index + 1));
 
       viewedItems.add(index);
       updateProgress();
+    }
+
+    function openGalleryLightbox(index, src, trigger) {
+      var lightbox = document.getElementById('${instanceId}-gallery-lightbox');
+      lightbox.style.display = 'flex';
+      galleryReturnFocus = trigger || document.activeElement;
+      showGalleryIndex(index);
+      lightbox.focus();
     }
 
     function closeGalleryLightbox() {
@@ -136,7 +146,8 @@ export function generateJS(config, instanceId) {
     }
 
     function initComponent() {
-      document.querySelectorAll('.gallery-item-card').forEach(function(card, idx) {
+      galleryCards = Array.prototype.slice.call(document.querySelectorAll('.gallery-item-card'));
+      galleryCards.forEach(function(card, idx) {
         card.addEventListener('click', function() {
           openGalleryLightbox(idx, card.getAttribute('data-img'), card);
         });
@@ -155,6 +166,14 @@ export function generateJS(config, instanceId) {
           if (event.key === 'Escape') {
             event.preventDefault();
             closeGalleryLightbox();
+          }
+          if (event.key === 'ArrowRight' && galleryCards.length > 1) {
+            event.preventDefault();
+            showGalleryIndex((galleryCurrentIndex + 1) % galleryCards.length);
+          }
+          if (event.key === 'ArrowLeft' && galleryCards.length > 1) {
+            event.preventDefault();
+            showGalleryIndex((galleryCurrentIndex - 1 + galleryCards.length) % galleryCards.length);
           }
           if (event.key === 'Tab') {
             var close = lightbox.querySelector('.lightbox-close');

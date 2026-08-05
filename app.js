@@ -14,11 +14,16 @@ import { COMPONENT_REGISTRY, getCategoriesWithCounts, getComponentById, getDefau
 import { createSchemaItemEditor, switchEditorTab as activateEditorTab, addEditorItem, validateActiveComponent, validateSchemaField } from './js/editor.js';
 import { writePreview, openPreview, generateIframeContent as compilePreview, COMPONENT_MAX_WIDTH } from './js/preview.js';
 import { getDeviceWidthLabel } from './js/device-preview.js';
-import { buildExportPayload, downloadAssetManifest, downloadHtml, downloadProjectJson, formatExportedFileSize, getExportedFileSize, prepareMediaExport } from './js/export.js';
-import { copyTextToClipboard, escapeHTML, toRgba as colorToRgba } from './js/utilities.js';
+import {
+  buildExportPayload, buildRiseProjectZip, downloadHtml, downloadProjectJson,
+  downloadZipFile, formatExportedFileSize, getExportedFileSize, prepareMediaExport
+} from './js/export.js';
+import { copyTextToClipboard, escapeHTML, normalizeHeadingLevel, toRgba as colorToRgba } from './js/utilities.js';
 import { showToast } from './js/toast.js';
 import { COMPATIBILITY_TIERS, getExportFormatCompatibility } from './js/compatibility.js';
-import { resolveMediaLimits, validateMediaAccessibility } from './js/media.js';
+import { collectSyncIssues, runPreflight, summarizePreflight } from './js/validation.js';
+import { collectMediaReferences, resolveMediaLimits, validateMediaAccessibility } from './js/media.js';
+import { downloadProjectPackage, exportProjectPackage, importProjectPackage, isProjectPackageFile } from './js/project-package.js';
 import { pruneMediaObjectURLs, releaseAllMediaObjectURLs, restoreMediaReferences } from './js/media-storage.js';
 import {
   applyThemeToConfig, BUILT_IN_THEMES, createThemeFromCurrentStyling, DEFAULT_THEME_ID,
@@ -26,10 +31,31 @@ import {
   serializeTheme, validateThemeContrast
 } from './js/themes.js';
 // Every catalog component is a real, isolated module (js/component-registry.js). The
-// preview/export compiler needs its renderer (generateHTML/CSS/JS); the editor's
-// save-time validation gate needs its validate() — combine both under one id map.
-const componentRegistry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, { ...entry.renderer, validate: entry.validate }]));
+// preview/export compiler needs its renderer (generateHTML/CSS/JS) and version (embedded
+// in the completion adapter's message envelope, js/completion.js); the editor's save-time
+// validation gate needs its validate() — combine all three under one id map.
+const componentRegistry = Object.fromEntries(COMPONENT_REGISTRY.map(entry => [entry.id, { ...entry.renderer, validate: entry.validate, version: entry.version }]));
 const generateIframeContent = () => compilePreview(appState, componentRegistry, colorToRgba);
+
+// Every error thrown deliberately by this app's own code (project/theme/import validation,
+// storage quota, export failures, etc.) is already caught at its call site and shown as a
+// specific, reviewed, user-facing toast — see the individual try/catch blocks below. This
+// handler exists only for the residual case: a genuinely unanticipated bug (an uncaught
+// exception or unhandled promise rejection) that would otherwise fail silently or surface a
+// raw browser error overlay. Full detail goes to the console (a safe place for it — visible
+// only to whoever already has this browser's devtools open, i.e. the same person who hit the
+// bug); the toast itself stays generic on purpose, since a bug's raw message/stack can name
+// internal variables or file paths that mean nothing to an instructional designer.
+let lastUnexpectedErrorToastAt = 0;
+function reportUnexpectedError(error) {
+  console.error('Unexpected application error:', error);
+  const now = Date.now();
+  if (now - lastUnexpectedErrorToastAt < 4000) return;
+  lastUnexpectedErrorToastAt = now;
+  showToast('Something unexpected went wrong. Your work autosaves regularly — check the browser console for technical details.', 'error', 6000);
+}
+window.addEventListener('error', event => reportUnexpectedError(event.error || event.message));
+window.addEventListener('unhandledrejection', event => reportUnexpectedError(event.reason));
 
 document.addEventListener('DOMContentLoaded', async () => {
   
@@ -71,6 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const activeComponentCategory = document.getElementById('active-component-category');
   const btnFavoriteToggle = document.getElementById('btn-favorite-toggle');
   const favoritesCountBadge = document.getElementById('favorites-count-badge');
+  const preflightBadge = document.getElementById('preflight-badge');
   
   // Editor Tabs
   const editorTabs = document.querySelectorAll('.editor-tab');
@@ -80,6 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inputBlockTitle = document.getElementById('input-block-title');
   const inputBlockHeadline = document.getElementById('input-block-headline');
   const inputBlockDesc = document.getElementById('input-block-desc');
+  const selectHeadingLevel = document.getElementById('select-heading-level');
   const inputColorPrimary = document.getElementById('input-color-primary');
   const inputColorPrimaryText = document.getElementById('input-color-primary-text');
   const inputColorAccent = document.getElementById('input-color-accent');
@@ -124,7 +152,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     'btn-export': 'modal-export',
     'btn-settings': 'modal-settings',
     'btn-theme-manager': 'modal-theme-manager',
-    'btn-open-theme-manager-style': 'modal-theme-manager'
+    'btn-open-theme-manager-style': 'modal-theme-manager',
+    'btn-preflight': 'modal-preflight'
   };
   const modalOverlays = document.querySelectorAll('.modal-overlay');
   modalOverlays.forEach(overlay => overlay.setAttribute('aria-hidden', 'true'));
@@ -680,6 +709,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     syncText(inputBlockDesc, 'blockDesc');
     syncText(inputCompletionMsg, 'completionMsg');
 
+    selectHeadingLevel.addEventListener('change', (e) => {
+      appState.config.blockHeadingLevel = e.target.value;
+      updateLivePreview();
+    });
+
     // 2. Color Sync (Picker <-> Text Input)
     const syncColor = (picker, text, stateKey) => {
       const overrideKey = {
@@ -744,9 +778,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     onChange: updateLivePreview
   });
 
+  function computeIssuesByItem(issues) {
+    const map = new Map();
+    issues.forEach(item => {
+      if (!Number.isInteger(item.itemIndex)) return;
+      const entry = map.get(item.itemIndex) || { blocking: 0, warning: 0 };
+      if (item.severity === 'blocking') entry.blocking += 1; else entry.warning += 1;
+      map.set(item.itemIndex, entry);
+    });
+    return map;
+  }
+
   function renderDynamicItems() {
     const schema = appState.selectedComponent?.editorSchema || componentCatalog[0].editorSchema;
     schemaItemEditor.render({ schema, items: appState.config.items, config: appState.config, limits: resolveMediaLimits(appState.settings.mediaLimitsMb) });
+    refreshItemIssueBadges();
+  }
+
+  function refreshItemIssueBadges() {
+    const context = buildPreflightContext();
+    schemaItemEditor.refreshIssueBadges(context ? computeIssuesByItem(collectSyncIssues(context)) : new Map());
   }
 
   btnAddItem.addEventListener('click', () => {
@@ -948,6 +999,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('settings-limit-audio').value = appState.settings.mediaLimitsMb.audio;
     document.getElementById('settings-limit-video').value = appState.settings.mediaLimitsMb.video;
     document.getElementById('settings-limit-svg').value = appState.settings.mediaLimitsMb.svg;
+    document.getElementById('settings-completion-origin').value = appState.settings.completionParentOrigin;
   }
 
   // accordionMulti/accordionAnimation/iconStyle only affect the Accordion (components/accordion.js);
@@ -962,6 +1014,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     inputBlockTitle.value = config.blockTitle;
     inputBlockHeadline.value = config.blockHeadline;
     inputBlockDesc.value = config.blockDesc;
+    config.blockHeadingLevel = normalizeHeadingLevel(config.blockHeadingLevel);
+    selectHeadingLevel.value = config.blockHeadingLevel;
     [[inputColorPrimary, inputColorPrimaryText, 'colorPrimary'], [inputColorAccent, inputColorAccentText, 'colorAccent'],
       [inputColorBg, inputColorBgText, 'colorBg'], [inputColorText, inputColorTextText, 'colorText']]
       .forEach(([picker, text, key]) => { picker.value = config[key]; text.value = config[key].toUpperCase(); });
@@ -1139,6 +1193,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         catch (error) { showToast(error.message, 'error'); }
       });
       addAction('Export JSON', () => downloadProjectJson(project));
+      addAction('Export Package', async () => {
+        try {
+          const packaged = await exportProjectPackage(project);
+          downloadProjectPackage(project.name, packaged.blob);
+          showToast(packaged.missing.length
+            ? `Package downloaded (${formatExportedFileSize(packaged.size)}), but ${packaged.missing.length} referenced file(s) were missing from local storage and could not be included.`
+            : `Portable project package downloaded (${formatExportedFileSize(packaged.size)}).`,
+            packaged.missing.length ? 'warning' : 'success', 6000);
+        } catch (error) { showToast(`Package export failed: ${error.message}`, 'error', 6000); }
+      });
       addAction('Delete', async () => {
         const confirmed = await openConfirmDialog({ title: 'Delete Project', message: `Delete “${project.name}”? This cannot be undone.`, confirmLabel: 'Delete', danger: true });
         if (!confirmed) return;
@@ -1193,9 +1257,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     const file = importProjectFile.files?.[0];
     if (!file) return;
     try {
-      const imported = importProjectJson(await file.text());
-      renderStoredProjects();
-      showToast(`Imported “${imported.name}”.`, 'success');
+      if (isProjectPackageFile(file)) {
+        const { project: imported, restoredMediaCount, missingMedia } = await importProjectPackage(file);
+        renderStoredProjects();
+        showToast(missingMedia.length
+          ? `Imported “${imported.name}”, restored ${restoredMediaCount} media file(s), but ${missingMedia.length} referenced file(s) weren't in the package or this browser.`
+          : `Imported “${imported.name}”${restoredMediaCount ? ` and restored ${restoredMediaCount} media file(s)` : ''}.`,
+          missingMedia.length ? 'warning' : 'success', 6000);
+      } else {
+        const imported = importProjectJson(await file.text());
+        renderStoredProjects();
+        showToast(`Imported “${imported.name}”.`, 'success');
+      }
     } catch (error) {
       showToast(`Import failed: ${error.message}`, 'error', 6000);
     } finally {
@@ -1218,6 +1291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (modalId === 'modal-settings') syncSettingsControls();
         if (modalId === 'modal-theme-manager') renderThemeManager();
+        if (modalId === 'modal-preflight') renderPreflightModal();
 
         openModal(modalId);
       });
@@ -1275,6 +1349,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const limitAudio = document.getElementById('settings-limit-audio');
       const limitVideo = document.getElementById('settings-limit-video');
       const limitSvg = document.getElementById('settings-limit-svg');
+      const completionOrigin = document.getElementById('settings-completion-origin');
 
       try {
         appState.settings = saveSettings({
@@ -1287,7 +1362,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             audio: Number(limitAudio.value),
             video: Number(limitVideo.value),
             svg: Number(limitSvg.value)
-          }
+          },
+          completionParentOrigin: completionOrigin.value
         });
         syncSettingsControls();
         if (!appState.settings.autosave) clearDraft();
@@ -1369,6 +1445,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   let currentExportBundle = null;
+  let currentRiseZipBundle = null;
   async function prepareCurrentExport() {
     const prepared = await prepareMediaExport(appState.config);
     const exportState = { ...appState, config: prepared.config };
@@ -1376,11 +1453,69 @@ document.addEventListener('DOMContentLoaded', async () => {
     return { html, assets: prepared.assets, ...buildExportPayload(html, prepared) };
   }
 
+  // Rise Project ZIP always packages every local asset (never inlines, never blocks on
+  // "requires a separate file" — packaging one *is* the point), and the ZIP is only
+  // actually assembled after every asset resolves, since a missing asset blocks this
+  // export entirely rather than shipping an index.html with a dangling reference.
+  async function prepareRiseZipBundle() {
+    const prepared = await prepareMediaExport(appState.config, { mode: 'package' });
+    const exportState = { ...appState, config: prepared.config };
+    const html = compilePreview(exportState, componentRegistry, colorToRgba);
+    if (prepared.missing.length) {
+      return { html, manifest: prepared.manifest, warnings: prepared.warnings, missing: prepared.missing, blob: null, size: 0 };
+    }
+    const packaged = await buildRiseProjectZip({ html, assets: prepared.assets, manifest: prepared.manifest });
+    return {
+      html, manifest: prepared.manifest, missing: prepared.missing,
+      warnings: [...prepared.warnings, ...packaged.warnings], blob: packaged.blob, size: packaged.size
+    };
+  }
+
+  function setExportActionsEnabled(enabled) {
+    ['btn-copy-iframe', 'btn-copy-html', 'btn-download-html'].forEach(id => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      button.disabled = !enabled;
+      button.title = enabled ? '' : 'Fix the blocking errors listed above before exporting.';
+    });
+    // The Rise Project ZIP button has its own independent, narrower block condition
+    // (a genuinely missing asset) layered on top of this preflight gate — see
+    // setRiseZipActionEnabled() below, called from setupExportModalContent().
+    const zipButton = document.getElementById('btn-download-rise-zip');
+    if (zipButton && enabled === false) {
+      zipButton.disabled = true;
+      zipButton.title = 'Fix the blocking errors listed above before exporting.';
+    }
+  }
+
+  async function runExportPreflightGate() {
+    const container = document.getElementById('export-preflight-results');
+    const context = buildPreflightContext();
+    if (!container || !context) { setExportActionsEnabled(true); return true; }
+    try {
+      const issues = await runPreflight(context);
+      const summary = renderPreflightResults(container, issues);
+      updatePreflightBadge(summary);
+      setExportActionsEnabled(summary.canExport);
+      return summary.canExport;
+    } catch (error) {
+      container.innerHTML = `<div class="preflight-empty">Preflight check failed: ${escapeHTML(error.message)}</div>`;
+      setExportActionsEnabled(true); // fail open: a broken preflight check must not itself block a working export
+      return true;
+    }
+  }
+
+  function updateRiseZipRecommendedBadge() {
+    const badge = document.getElementById('rise-zip-recommended-badge');
+    if (badge) badge.hidden = collectMediaReferences(appState.config).length === 0;
+  }
+
   async function setupExportModalContent() {
     const activeTab = document.querySelector('.export-tab.active');
     renderExportCompatibilityReport(activeTab ? activeTab.getAttribute('data-export-type') : 'iframe');
+    updateRiseZipRecommendedBadge();
+    const canExport = await runExportPreflightGate();
     const warningBox = document.getElementById('export-media-warning');
-    const manifestCode = document.getElementById('export-asset-manifest');
     if (warningBox) { warningBox.hidden = false; warningBox.classList.add('is-loading'); warningBox.textContent = 'Preparing media export…'; }
     try {
       currentExportBundle = await prepareCurrentExport();
@@ -1404,10 +1539,47 @@ document.addEventListener('DOMContentLoaded', async () => {
       warningBox.hidden = payload.warnings.length === 0;
       warningBox.textContent = payload.warnings.join(' ');
     }
-    if (manifestCode) manifestCode.textContent = JSON.stringify(payload.manifest, null, 2);
 
     const fileSizeLabel = document.getElementById('export-file-size');
     if (fileSizeLabel) fileSizeLabel.textContent = `Standalone HTML file size: ${formatExportedFileSize(getExportedFileSize(payload.html))}`;
+
+    await setupRiseZipPane(canExport);
+  }
+
+  async function setupRiseZipPane(canExport) {
+    const zipWarningBox = document.getElementById('rise-zip-warning');
+    const zipBlockingBox = document.getElementById('rise-zip-blocking');
+    const zipSizeLabel = document.getElementById('rise-zip-file-size');
+    const zipManifestCode = document.getElementById('rise-zip-manifest');
+    const zipButton = document.getElementById('btn-download-rise-zip');
+    if (zipWarningBox) { zipWarningBox.hidden = false; zipWarningBox.classList.add('is-loading'); zipWarningBox.textContent = 'Preparing Rise Project ZIP…'; }
+    try {
+      currentRiseZipBundle = await prepareRiseZipBundle();
+    } catch (error) {
+      currentRiseZipBundle = null;
+      if (zipWarningBox) { zipWarningBox.classList.remove('is-loading'); zipWarningBox.textContent = `ZIP preparation failed: ${error.message}`; }
+      return;
+    }
+    const bundle = currentRiseZipBundle;
+    if (zipManifestCode) zipManifestCode.textContent = JSON.stringify(bundle.manifest, null, 2);
+    if (zipWarningBox) {
+      zipWarningBox.classList.remove('is-loading');
+      zipWarningBox.hidden = bundle.warnings.length === 0;
+      zipWarningBox.textContent = bundle.warnings.join(' ');
+    }
+    const blocked = bundle.missing.length > 0;
+    if (zipBlockingBox) {
+      zipBlockingBox.hidden = !blocked;
+      zipBlockingBox.textContent = blocked
+        ? `Export blocked: ${bundle.missing.length} required asset${bundle.missing.length === 1 ? ' is' : 's are'} missing from local storage (${bundle.missing.join(', ')}). Re-upload the missing file(s) before exporting.`
+        : '';
+    }
+    if (zipSizeLabel) zipSizeLabel.textContent = blocked ? '' : `Rise Project ZIP size: ${formatExportedFileSize(bundle.size)}`;
+    if (zipButton) {
+      const enabled = canExport && !blocked;
+      zipButton.disabled = !enabled;
+      zipButton.title = blocked ? 'Re-upload the missing asset(s) before exporting.' : enabled ? '' : 'Fix the blocking errors listed above before exporting.';
+    }
   }
 
   const btnDownloadHtml = document.getElementById('btn-download-html');
@@ -1423,26 +1595,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       if (bundle.warnings.length) {
         currentExportBundle = bundle;
-        showToast('Single-file export is blocked because one or more uploaded assets require separate files. Use ZIP asset preparation.', 'warning', 7000);
+        showToast('Single-file export is blocked because one or more uploaded assets require separate files. Use the Rise Project ZIP option instead.', 'warning', 7000);
         return;
       }
       downloadHtml(title, bundle.html);
     });
   }
 
-  const btnDownloadZip = document.getElementById('btn-download-zip');
-  if (btnDownloadZip) {
-    btnDownloadZip.addEventListener('click', async () => {
+  const btnDownloadRiseZip = document.getElementById('btn-download-rise-zip');
+  if (btnDownloadRiseZip) {
+    btnDownloadRiseZip.addEventListener('click', async () => {
       const title = appState.selectedComponent?.title || 'rise-component';
-      let bundle;
+      let bundle = currentRiseZipBundle;
       try {
-        bundle = currentExportBundle || await prepareCurrentExport();
+        if (!bundle) bundle = await prepareRiseZipBundle();
       } catch (error) {
         showToast(`Export failed: ${error.message}`, 'error', 6000);
         return;
       }
-      downloadAssetManifest(title, bundle.manifest);
-      showToast('Asset manifest prepared. ZIP packaging is not implemented yet.', 'warning', 6000);
+      if (bundle.missing.length) {
+        showToast(`Export blocked: ${bundle.missing.length} required asset${bundle.missing.length === 1 ? ' is' : 's are'} missing from local storage. Re-upload the missing file(s).`, 'error', 7000);
+        return;
+      }
+      downloadZipFile(title, bundle.blob);
+      showToast(`Rise Project ZIP downloaded (${formatExportedFileSize(bundle.size)}).`, 'success');
     });
   }
 
@@ -1484,6 +1660,93 @@ document.addEventListener('DOMContentLoaded', async () => {
     validateActiveComponent(appState, componentRegistry);
     writePreview(livePreviewIframe, generateIframeContent());
     scheduleDraftSave();
+    refreshPreflightBadge();
+    refreshItemIssueBadges();
+  }
+
+  // ==========================================
+  // PREFLIGHT VALIDATION (js/validation.js)
+  // ==========================================
+  const SEVERITY_LABELS = { blocking: 'Blocking Errors', warning: 'Warnings', recommendation: 'Recommendations' };
+
+  function buildPreflightContext() {
+    if (!appState.selectedComponent) return null;
+    return {
+      componentId: appState.selectedComponent.id,
+      schema: appState.selectedComponent.editorSchema,
+      config: appState.config,
+      theme: appState.activeTheme,
+      componentOverrides: appState.componentOverrides,
+      settings: appState.settings
+    };
+  }
+
+  function refreshPreflightBadge() {
+    const context = buildPreflightContext();
+    if (!context) return;
+    updatePreflightBadge(summarizePreflight(collectSyncIssues(context)));
+  }
+
+  function updatePreflightBadge(summary) {
+    if (!preflightBadge) return;
+    const total = summary.blocking.length + summary.warnings.length + summary.recommendations.length;
+    preflightBadge.dataset.state = summary.blocking.length ? 'blocking' : total ? 'warning' : 'clean';
+    preflightBadge.textContent = total ? `Preflight (${total})` : 'Preflight';
+  }
+
+  function jumpToPreflightField(fieldId, itemIndexRaw) {
+    const itemIndex = itemIndexRaw === '' || itemIndexRaw === undefined ? null : Number(itemIndexRaw);
+    closeModal('modal-preflight');
+    window.setTimeout(() => {
+      let target = null;
+      if (Number.isInteger(itemIndex)) {
+        const card = dynamicItemsContainer.querySelector(`.dynamic-item-card[data-index="${itemIndex}"]`);
+        if (card?.classList.contains('collapsed')) card.querySelector('.item-collapse-btn')?.click();
+        target = card?.querySelector(`[data-field-id="${fieldId}"]`) || card;
+      } else if (fieldId === 'blockHeadline') {
+        target = inputBlockHeadline;
+      } else if (fieldId) {
+        target = document.querySelector(`#config-form [data-field-id="${fieldId}"]`);
+      }
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target?.focus?.();
+    }, 60);
+  }
+
+  function renderPreflightResults(container, issues) {
+    const summary = summarizePreflight(issues);
+    const sections = [['blocking', summary.blocking], ['warning', summary.warnings], ['recommendation', summary.recommendations]];
+    const sectionsHTML = sections.filter(([, list]) => list.length).map(([severity, list]) => `
+      <div class="preflight-section">
+        <div class="preflight-section-title is-${severity}">${SEVERITY_LABELS[severity]} (${list.length})</div>
+        <ul class="preflight-issue-list">
+          ${list.map(item => `
+            <li class="preflight-issue">
+              <span class="preflight-issue-message">${escapeHTML(item.message)}</span>
+              ${item.fieldId ? `<button type="button" class="preflight-issue-jump" data-field-id="${escapeHTML(item.fieldId)}" data-item-index="${item.itemIndex ?? ''}">Go to field</button>` : ''}
+            </li>`).join('')}
+        </ul>
+      </div>`).join('');
+    container.innerHTML = sectionsHTML || '<div class="preflight-empty">No issues found — this component is clean.</div>';
+    container.querySelectorAll('.preflight-issue-jump').forEach(button => {
+      button.addEventListener('click', () => jumpToPreflightField(button.dataset.fieldId, button.dataset.itemIndex));
+    });
+    return summary;
+  }
+
+  async function renderPreflightModal() {
+    const container = document.getElementById('preflight-results');
+    if (!container) return;
+    const context = buildPreflightContext();
+    if (!context) { container.innerHTML = '<div class="preflight-empty">Select a component first.</div>'; return; }
+    container.innerHTML = '<div class="preflight-empty">Running preflight checks…</div>';
+    try {
+      const issues = await runPreflight(context);
+      const summary = renderPreflightResults(container, issues);
+      updatePreflightBadge(summary);
+    } catch (error) {
+      container.innerHTML = `<div class="preflight-empty">Preflight check failed: ${escapeHTML(error.message)}</div>`;
+    }
   }
 
   // Run the initialization
