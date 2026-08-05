@@ -1,9 +1,24 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeAttribute, escapeHTML } from '../js/utilities.js';
+import { validateHotspotCoordinates, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Hotspots Component Configuration
+ * @typedef {Object} HotspotsConfig
+ * @property {string} [backgroundImage] - Background image URL
+ * @property {string} [backgroundAltText] - Alt text for background image
+ * @property {boolean} [backgroundDecorative] - Whether background is decorative
+ * @property {'contain'|'cover'} [backgroundFit] - Image fit mode
+ * @property {number} [backgroundFocalX=50] - Focal point X percentage
+ * @property {number} [backgroundFocalY=50] - Focal point Y percentage
+ * @property {Array<{title: string, content: string, x: string, y: string}>} items - Array of hotspot items
+ */
 
 export const id = 'hotspots';
 export const name = 'Interactive Hotspots';
 export const category = 'interactive';
+
+/** @type {HotspotsConfig} */
 export const defaultConfig = {
   items: [
     { title: 'Engine Valve', content: 'Manages the fuel-air mixture entry.', x: '25', y: '40' },
@@ -214,7 +229,27 @@ export function generateJS() {
     }`;
 }
 
+/**
+ * Validates hotspots component configuration.
+ * @param {HotspotsConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = Array.isArray(config.items) && config.items.length ? [] : ['Add at least one hotspot.'];
-  return { valid: errors.length === 0, errors };
+  const results = [
+    validateHotspotCoordinates(config.items)
+  ];
+  
+  // Validate each item has required fields
+  if (Array.isArray(config.items)) {
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Hotspot ${index + 1}: Title is required.` });
+      }
+      if (!item.content || !String(item.content).trim()) {
+        results.push({ valid: false, error: `Hotspot ${index + 1}: Content is required.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }

@@ -1,9 +1,18 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeAttribute, escapeHTML } from '../js/utilities.js';
+import { validateScenarioBranching, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Scenario Component Configuration
+ * @typedef {Object} ScenarioConfig
+ * @property {Array<{title: string, content: string, nextSlide?: string}>} items - Array of scenario steps (prompt + choices)
+ */
 
 export const id = 'scenario';
 export const name = 'Branching Scenario Card';
 export const category = 'process';
+
+/** @type {ScenarioConfig} */
 export const defaultConfig = {
   items: [
     { title: 'How should you write interactive eLearning scripts?', content: 'Short and conversational' },
@@ -164,7 +173,34 @@ export function generateJS(config, instanceId) {
     }`;
 }
 
+/**
+ * Validates scenario component configuration.
+ * @param {ScenarioConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = Array.isArray(config.items) && config.items.length >= 2 ? [] : ['Add a prompt and at least one choice.'];
-  return { valid: errors.length === 0, errors };
+  const results = [];
+  
+  // Check minimum items (prompt + at least one choice)
+  if (!Array.isArray(config.items) || config.items.length < 2) {
+    results.push({ valid: false, error: 'Add a prompt and at least one choice.' });
+  } else {
+    // Validate branching if nextSlide properties exist
+    const hasBranching = config.items.some(item => item.nextSlide);
+    if (hasBranching) {
+      results.push(validateScenarioBranching(config.items));
+    }
+    
+    // Validate each item has required fields
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Step ${index + 1}: Title is required.` });
+      }
+      if (!item.content || !String(item.content).trim()) {
+        results.push({ valid: false, error: `Step ${index + 1}: Content/feedback is required.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }

@@ -1,9 +1,18 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeHTML, sanitizeRichText, serializeForInlineScript } from '../js/utilities.js';
+import { validateQuizAnswers, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Multiple Choice Component Configuration
+ * @typedef {Object} MultipleChoiceConfig
+ * @property {Array<{label: string, content: string, correct: boolean}>} items - Array of answer options
+ */
 
 export const id = 'multiple-choice';
 export const name = 'Multiple Choice Check';
 export const category = 'knowledge';
+
+/** @type {MultipleChoiceConfig} */
 export const defaultConfig = {
   items: [
     { label: 'Option A (Correct)', content: 'Micro-learning helps memory retention.', correct: true },
@@ -195,9 +204,24 @@ export function generateJS(config, instanceId) {
     }`;
 }
 
+/**
+ * Validates multiple choice component configuration.
+ * @param {MultipleChoiceConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = [];
-  if (!Array.isArray(config.items) || config.items.length < 2) errors.push('Add at least two answer options.');
-  if (Array.isArray(config.items) && !config.items.some(item => item.correct)) errors.push('Select a correct answer.');
-  return { valid: errors.length === 0, errors };
+  const results = [
+    validateQuizAnswers(config.items, 'multiple-choice')
+  ];
+  
+  // Validate each item has required fields
+  if (Array.isArray(config.items)) {
+    config.items.forEach((item, index) => {
+      if (!item.label || !String(item.label).trim()) {
+        results.push({ valid: false, error: `Option ${index + 1}: Label is required.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }

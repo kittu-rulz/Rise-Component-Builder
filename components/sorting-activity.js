@@ -1,9 +1,18 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeAttribute, escapeHTML, serializeForInlineScript } from '../js/utilities.js';
+import { validateSortingOrder, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Sorting Activity Component Configuration
+ * @typedef {Object} SortingActivityConfig
+ * @property {Array<{title: string, content: string, category: string}>} items - Array of sortable items with categories
+ */
 
 export const id = 'sorting-activity';
 export const name = 'Sorting Drag-and-Drop';
 export const category = 'knowledge';
+
+/** @type {SortingActivityConfig} */
 export const defaultConfig = {
   items: [
     { title: 'Vibrant Colors', content: 'Design System', category: 'Design' },
@@ -272,7 +281,34 @@ export function generateJS(config, instanceId) {
     }`;
 }
 
+/**
+ * Validates sorting activity component configuration.
+ * @param {SortingActivityConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = Array.isArray(config.items) && config.items.length >= 2 ? [] : ['Add at least two sortable items.'];
-  return { valid: errors.length === 0, errors };
+  const results = [];
+  
+  // Check minimum items
+  if (!Array.isArray(config.items) || config.items.length < 2) {
+    results.push({ valid: false, error: 'Add at least two sortable items.' });
+  } else {
+    // Validate each item has required fields
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Item ${index + 1}: Title is required.` });
+      }
+      if (!item.category || !String(item.category).trim()) {
+        results.push({ valid: false, error: `Item ${index + 1}: Category is required.` });
+      }
+    });
+    
+    // Check that at least 2 unique categories exist
+    const categories = new Set(config.items.map(item => item.category));
+    if (categories.size < 2) {
+      results.push({ valid: false, error: 'Items must have at least two different categories.' });
+    }
+  }
+  
+  return combineValidationResults(results);
 }

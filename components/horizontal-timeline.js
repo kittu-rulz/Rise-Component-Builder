@@ -1,9 +1,18 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeHTML } from '../js/utilities.js';
+import { validateTimelineEvents, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Horizontal Timeline Component Configuration
+ * @typedef {Object} HorizontalTimelineConfig
+ * @property {Array<{title: string, content: string, date?: string, year?: string}>} items - Array of timeline events
+ */
 
 export const id = 'horizontal-timeline';
 export const name = 'Horizontal Journey Map';
 export const category = 'timelines';
+
+/** @type {HorizontalTimelineConfig} */
 export const defaultConfig = {
   items: [
     { title: 'Phase 1: Research', content: 'Collect data assets, requirements, and verify targets.' },
@@ -170,7 +179,27 @@ export function generateJS(config, instanceId) {
     }`;
 }
 
+/**
+ * Validates horizontal timeline component configuration.
+ * @param {HorizontalTimelineConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = Array.isArray(config.items) && config.items.length >= 2 ? [] : ['Add at least two timeline milestones.'];
-  return { valid: errors.length === 0, errors };
+  const results = [
+    validateTimelineEvents(config.items)
+  ];
+  
+  // Validate each item has required fields
+  if (Array.isArray(config.items)) {
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Event ${index + 1}: Title is required.` });
+      }
+      if (!item.content || !String(item.content).trim()) {
+        results.push({ valid: false, error: `Event ${index + 1}: Description is required.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }

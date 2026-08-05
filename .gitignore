@@ -1,7 +1,73 @@
+```
+# Dependencies
 node_modules/
-coverage/
-playwright-report/
-test-results/
-.vitest/
-dist/
 
+# Logs and temp files
+*.log
+*.tmp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Coverage reports
+coverage/
+htmlcov/
+.coverage
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# Build results
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+node_modules/
+jspm_packages/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+coverage/
+.junit/
+.nyc_output/
+istanbul/
+```

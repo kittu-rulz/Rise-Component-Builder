@@ -1,9 +1,21 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeHTML, sanitizeRichText } from '../js/utilities.js';
+import { validateNonEmptyArray, combineValidationResults } from '../js/validation-utils.js';
+
+/**
+ * Accordion Component Configuration
+ * @typedef {Object} AccordionConfig
+ * @property {boolean} accordionMulti - Allow multiple items open simultaneously
+ * @property {boolean} accordionAnimation - Enable expand/collapse animation
+ * @property {'chevron'|'plus-minus'|'arrow'} iconStyle - Icon style for expand indicators
+ * @property {Array<{title: string, content: string}>} items - Array of accordion items
+ */
 
 export const id = 'accordion';
 export const name = 'Responsive Accordion';
 export const category = 'interactive';
+
+/** @type {AccordionConfig} */
 export const defaultConfig = {
   accordionMulti: true,
   accordionAnimation: true,
@@ -14,6 +26,7 @@ export const defaultConfig = {
     { title: 'SCORM and Tracking Analytics', content: 'Export clean standard elements to trace course completion, custom interaction states, and score cards.' }
   ]
 };
+
 export const editorSchema = getEditorSchema(id);
 
 export function generateHTML(config, instanceId) {
@@ -178,8 +191,27 @@ export function generateJS(config, instanceId) {
     }`;
 }
 
+/**
+ * Validates accordion component configuration.
+ * @param {AccordionConfig} config - The configuration to validate
+ * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
+ */
 export function validate(config) {
-  const errors = [];
-  if (!Array.isArray(config.items) || !config.items.length) errors.push('Add at least one accordion item.');
-  return { valid: errors.length === 0, errors };
+  const results = [
+    validateNonEmptyArray(config.items, 'Accordion items')
+  ];
+  
+  // Validate each item has required fields
+  if (Array.isArray(config.items)) {
+    config.items.forEach((item, index) => {
+      if (!item.title || !String(item.title).trim()) {
+        results.push({ valid: false, error: `Item ${index + 1}: Title is required.` });
+      }
+      if (!item.content || !String(item.content).trim()) {
+        results.push({ valid: false, error: `Item ${index + 1}: Content is required.` });
+      }
+    });
+  }
+  
+  return combineValidationResults(results);
 }
