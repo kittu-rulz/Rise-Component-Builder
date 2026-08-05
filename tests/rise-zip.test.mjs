@@ -110,6 +110,14 @@ test('createZip itself rejects an attempt to write two entries at the same path'
   assert.throws(() => createZip([{ path: 'a.txt', data: '1' }, { path: 'a.txt', data: '2' }]), /Duplicate ZIP entry path/);
 });
 
+test('createZip rejects an entry whose data is not a Uint8Array, ArrayBuffer, or string', () => {
+  assert.throws(() => createZip([{ path: 'a.txt', data: 12345 }]), /must be a Uint8Array, ArrayBuffer, or string/);
+});
+
+test('readZip rejects a blob that is not a valid ZIP archive', async () => {
+  await assert.rejects(() => readZip(new Blob(['not a zip file'])));
+});
+
 test('a missing (deleted) required asset blocks the ZIP export rather than shipping a dangling reference', async () => {
   const store = createIndexedDBMediaStore(createFakeIndexedDB());
   const image = await uploadImage(store, 'will-be-deleted');

@@ -2,8 +2,8 @@ import { test } from 'vitest';
 import assert from 'node:assert/strict';
 
 import {
-  MEDIA_LIMITS, computeFileHash, computeResizeTarget, createMediaReference, prepareMediaFile,
-  sanitizeSVGText, validateMediaAccessibility, validateMediaFile
+  MEDIA_LIMITS, computeFileHash, computeResizeTarget, createMediaReference, formatFileSize, prepareMediaFile,
+  resolveMediaLimits, sanitizeSVGText, validateMediaAccessibility, validateMediaFile
 } from '../js/media.js';
 import {
   createIndexedDBMediaStore, deleteMediaRecord, ensureMediaObjectURL, findDuplicateByHash,
@@ -274,4 +274,44 @@ test('an unrelated media storage failure still surfaces a clear, generic error',
   const failingStore = { put: () => Promise.reject(new Error('some other browser restriction')) };
   const record = await prepareMediaFile(fileBlob('big.png', 'image/png'), 'image', { id: 'other-fail-test' });
   await assert.rejects(() => saveMediaRecord(record, failingStore), /could not store the uploaded file/i);
+});
+
+test('formatFileSize renders bytes, kilobytes, and megabytes', () => {
+  assert.equal(formatFileSize(0), '0 B');
+  assert.equal(formatFileSize(512), '512 B');
+  assert.equal(formatFileSize(2048), '2.0 KB');
+  assert.equal(formatFileSize(5 * 1024 * 1024), '5.0 MB');
+  assert.equal(formatFileSize(undefined), '0 B');
+});
+
+test('validateMediaFile rejects an unsupported upload kind and a malformed file object', () => {
+  const file = fileBlob('lesson.mp3', 'audio/mpeg');
+  Object.defineProperty(file, 'name', { value: 'lesson.mp3' });
+  assert.equal(validateMediaFile(file, 'captions-not-a-kind').valid, false);
+  assert.equal(validateMediaFile(null, 'image').valid, false);
+  assert.equal(validateMediaFile({}, 'image').valid, false);
+});
+
+test('validateMediaFile rejects an empty (zero-byte) file', () => {
+  const empty = { name: 'empty.png', type: 'image/png', size: 0 };
+  const result = validateMediaFile(empty, 'image');
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join(' '), /empty files/i);
+});
+
+test('resolveMediaLimits converts configured megabyte settings to bytes and falls back per field', () => {
+  const custom = resolveMediaLimits({ image: 5, audio: 0, video: -1 });
+  assert.equal(custom.image, 5 * 1024 * 1024);
+  assert.equal(custom.audio, MEDIA_LIMITS.audio);
+  assert.equal(custom.video, MEDIA_LIMITS.video);
+  assert.equal(custom.svg, MEDIA_LIMITS.svg);
+  assert.deepEqual(resolveMediaLimits(null), MEDIA_LIMITS);
+});
+
+test('the hotspot background image requires alt text or an explicit decorative flag', () => {
+  const missing = validateMediaAccessibility({ backgroundImage: 'https://example.com/bg.png', backgroundDecorative: false, backgroundAltText: '', items: [] }, 'hotspots');
+  assert.equal(missing.length, 1);
+  assert.match(missing[0], /hotspot background/i);
+  const decorative = validateMediaAccessibility({ backgroundImage: 'https://example.com/bg.png', backgroundDecorative: true, backgroundAltText: '', items: [] }, 'hotspots');
+  assert.deepEqual(decorative, []);
 });

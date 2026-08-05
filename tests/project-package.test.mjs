@@ -106,3 +106,15 @@ test('isProjectPackageFile distinguishes a .zip from a plain .json by filename',
   assert.equal(isProjectPackageFile({ name: 'my-project.rise.json' }), false);
   assert.equal(isProjectPackageFile({ name: 'my-project.json' }), false);
 });
+
+test('a file that is not a valid ZIP at all gives a readable error, not a raw parser exception', async () => {
+  const notAZip = new Blob(['this is plain text, not a ZIP archive']);
+  await assert.rejects(() => importProjectPackage(notAZip), /does not appear to be a valid project package/i);
+});
+
+test('a package whose project.json entry is not parseable JSON gives a readable error', async () => {
+  const { createZip } = await import('../js/zip.js');
+  const corruptZip = createZip([{ path: 'project.json', data: '{ this is not valid json' }]);
+  await assert.rejects(() => importProjectPackage(corruptZip), /not valid JSON/i);
+});
+

@@ -4,7 +4,7 @@ import {
   getDefaultConfig, searchComponents, validateRegistry
 } from '../../js/component-registry.js';
 import { componentCatalog, filterCatalog } from '../../js/catalog.js';
-import { createDefaultItem } from '../../js/editor-schemas.js';
+import { createDefaultItem, getEditorSchema } from '../../js/editor-schemas.js';
 
 function baseEntry(overrides = {}) {
   return {
@@ -120,6 +120,48 @@ describe('component registry validation', () => {
 
   test('accepts a well-formed registry', () => {
     expect(() => validateRegistry([baseEntry()])).not.toThrow();
+  });
+
+  test('rejects a non-array or empty registry', () => {
+    expect(() => validateRegistry(null)).toThrow(/non-empty array/i);
+    expect(() => validateRegistry([])).toThrow(/non-empty array/i);
+  });
+
+  test.each([
+    ['id', { id: '' }, /missing a valid id/i],
+    ['id', { id: '   ' }, /missing a valid id/i],
+    ['name', { name: '' }, /missing a display name/i],
+    ['description', { description: '' }, /missing a description/i],
+    ['keywords', { keywords: [] }, /at least one search keyword/i],
+    ['version', { version: '' }, /missing a version/i],
+    ['icon', { icon: '' }, /missing a thumbnail\/icon/i],
+    ['editorSchema', { editorSchema: null }, /missing an editor schema/i],
+    ['defaultContent', { defaultContent: {} }, /missing default content/i],
+    ['defaultDesign', { defaultDesign: null }, /missing default design values/i],
+    ['defaultBehaviour', { defaultBehaviour: null }, /missing default behaviour values/i],
+    ['renderer', { renderer: null }, /missing a renderer reference/i],
+    ['renderer methods', { renderer: { type: 'module', generateHTML: () => '' } }, /incomplete renderer/i],
+    ['exporter', { exporter: null }, /missing an exporter reference/i],
+    ['media', { media: { required: false } }, /invalid media requirements/i],
+    ['accessibilitySupport', { accessibilitySupport: undefined }, /missing accessibility support status/i],
+    ['completionSupport', { completionSupport: undefined }, /missing completion support status/i],
+    ['status', { status: 'unreleased' }, /invalid status/i]
+  ])('rejects an entry with an invalid %s', (_label, overrides, expectedMessage) => {
+    expect(() => validateRegistry([baseEntry(overrides)])).toThrow(expectedMessage);
+  });
+});
+
+describe('editor schema resolution', () => {
+  test('getEditorSchema returns the registered schema for a known component id', () => {
+    expect(getEditorSchema('accordion')).toBe(COMPONENT_REGISTRY.find(entry => entry.id === 'accordion').editorSchema);
+  });
+
+  test('getEditorSchema falls back to a generic single-item-field schema for an unknown id', () => {
+    const fallback = getEditorSchema('not-a-real-component');
+    expect(fallback.itemLabel).toBe('Item');
+    expect(fallback.minItems).toBe(1);
+    expect(Array.isArray(fallback.itemFields)).toBe(true);
+    expect(fallback.itemFields.length).toBeGreaterThan(0);
   });
 });
 

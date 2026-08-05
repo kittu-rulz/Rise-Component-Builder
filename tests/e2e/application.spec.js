@@ -17,6 +17,50 @@ test('application loads without console errors and renders the catalog', async (
   expect(errors).toEqual([]);
 });
 
+test('every registered component opens in the builder editor and renders its live preview with no console/page errors', async ({ page }) => {
+  // Opens and closes all 22 registered components in sequence — comfortably under the
+  // default 30s timeout when run alone, but slower under heavy parallel worker
+  // contention (especially on WebKit), so this gets its own longer budget rather than
+  // being treated as flaky.
+  test.slow();
+  // image-gallery and video-frame ship illustrative default content that hotlinks a
+  // third-party image CDN (docs/MEDIA-ASSET-PIPELINE.md's external-dependency warning).
+  // Fulfilling those requests with a real, always-valid local placeholder — rather than
+  // letting the real network answer — makes this a deterministic check of the app's own
+  // code instead of a check of live network conditions in the test environment.
+  const onePixelPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
+  await page.route(/images\.unsplash\.com/, route => route.fulfill({ status: 200, contentType: 'image/png', body: onePixelPng }));
+  const errors = [];
+  page.on('console', message => { if (message.type() === 'error') errors.push(`${message.text()} (console)`); });
+  page.on('pageerror', error => errors.push(`${error.message} (pageerror)`));
+  await page.goto('/');
+
+  const dataCategories = ['interactive', 'navigation', 'knowledge', 'timelines', 'process', 'cards', 'media', 'ai'];
+  for (const dataCategory of dataCategories) {
+    await page.locator(`.nav-item[data-category="${dataCategory}"]`).click();
+    const cardCount = await page.locator('.component-select-card').count();
+    for (let index = 0; index < cardCount; index += 1) {
+      const card = page.locator('.component-select-card').nth(index);
+      const title = await card.locator('h3').textContent();
+      await card.click();
+      await expect(page.locator('#live-preview-iframe')).toBeVisible();
+      await expect(page.frameLocator('#live-preview-iframe').locator('body')).not.toBeEmpty();
+      // WebKit-on-Windows-sandbox known flake (docs/TESTING-STRATEGY.md "E2E browser
+      // matrix and known flake"): intermittently throws an internal
+      // "Temporal.Duration properties must be finite and of consistent sign" RangeError
+      // with no connection to which component is on screen (reproduced against three
+      // different, unrelated components across repeated runs) and no occurrence of
+      // "Temporal" anywhere in this project's own source — a WebKit engine artifact of
+      // this sandboxed environment, not an application error. Only genuine application
+      // errors should fail this test.
+      const applicationErrors = errors.filter(message => !/failed to load resource|corrupt or truncated|net::err_|networkerror|failed to decode|temporal\.duration/i.test(message));
+      expect(applicationErrors, `component "${title}" produced console/page errors`).toEqual([]);
+      await page.locator('#btn-back-to-catalog').click();
+      await page.locator(`.nav-item[data-category="${dataCategory}"]`).click();
+    }
+  }
+});
+
 test('an unanticipated runtime error surfaces a generic toast and logs full detail to the console, not to the user', async ({ page }) => {
   await page.goto('/');
   const consoleErrors = [];
