@@ -58,6 +58,7 @@ export function validateURL(value, fieldName, options = {}) {
   // Check for dangerous protocols
   const schemeEnd = input.indexOf(':');
   if (schemeEnd >= 1) {
+    // eslint-disable-next-line no-control-regex -- intentionally strips control characters that could hide a scheme, e.g. a NUL byte inside "javascript:"
     const normalizedScheme = input.slice(0, schemeEnd).replace(/[\u0000-\u0020\u007f]+/g, '').toLowerCase();
     if (normalizedScheme === 'javascript' || normalizedScheme === 'vbscript') {
       return { valid: false, error: `${fieldName} contains an invalid protocol.` };
@@ -112,7 +113,7 @@ export function validateQuizAnswers(items, componentType) {
     return { valid: false, error: 'At least one answer option is required.' };
   }
 
-  const correctCount = items.filter(item => item.isCorrect === true).length;
+  const correctCount = items.filter(item => item.correct === true).length;
   
   if (correctCount === 0) {
     return { valid: false, error: 'At least one correct answer must be selected.' };
@@ -211,7 +212,7 @@ export function validateFillBlankAnswers(items) {
 
   for (let i = 0; i < items.length; i++) {
     const item = items[i];
-    if (!item.answer || !String(item.answer).trim()) {
+    if (!item.content || !String(item.content).trim()) {
       return { valid: false, error: `Question ${i + 1}: Answer is required.` };
     }
   }

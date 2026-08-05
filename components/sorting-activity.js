@@ -1,6 +1,6 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeAttribute, escapeHTML, serializeForInlineScript } from '../js/utilities.js';
-import { validateSortingOrder, combineValidationResults } from '../js/validation-utils.js';
+import { combineValidationResults } from '../js/validation-utils.js';
 
 /**
  * Sorting Activity Component Configuration

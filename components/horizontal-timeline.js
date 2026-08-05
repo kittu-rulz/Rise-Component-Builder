@@ -1,6 +1,6 @@
 import { getEditorSchema } from '../js/editor-schemas.js';
 import { escapeHTML } from '../js/utilities.js';
-import { validateTimelineEvents, combineValidationResults } from '../js/validation-utils.js';
+import { combineValidationResults } from '../js/validation-utils.js';
 
 /**
  * Horizontal Timeline Component Configuration
@@ -185,12 +185,14 @@ export function generateJS(config, instanceId) {
  * @returns {{valid: boolean, errors: string[]}} Validation result with error messages
  */
 export function validate(config) {
-  const results = [
-    validateTimelineEvents(config.items)
-  ];
-  
-  // Validate each item has required fields
-  if (Array.isArray(config.items)) {
+  const results = [];
+  // No date/year field exists in this component's schema (js/editor-schemas.js — items
+  // are title+content only), so this checks item presence directly rather than going
+  // through validateTimelineEvents, whose date/chronological-order logic doesn't apply
+  // to this component's actual data shape.
+  if (!Array.isArray(config.items) || config.items.length === 0) {
+    results.push({ valid: false, error: 'At least one timeline milestone is required.' });
+  } else {
     config.items.forEach((item, index) => {
       if (!item.title || !String(item.title).trim()) {
         results.push({ valid: false, error: `Event ${index + 1}: Title is required.` });
@@ -200,6 +202,6 @@ export function validate(config) {
       }
     });
   }
-  
+
   return combineValidationResults(results);
 }
